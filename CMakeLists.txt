@@ -26,13 +26,18 @@ set(rw_gradlew_bat "${rapidwright_SOURCE_DIR}/gradlew.bat")
 
 set(RAPIDWRIGHT_PATH "${rapidwright_SOURCE_DIR}")
 
-set(RapidWrightAPI_JAVA_PATH "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/RapidWrightAPI.java")
+set(RAPIDWRIGHT_EXAMPLES_PATH "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples")
+
+set(RapidWrightAPI_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/RapidWrightAPI.java")
 file(REMOVE "${RapidWrightAPI_JAVA_PATH}")
+
+set(ExperimentalAPI_Device_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/ExperimentalAPI_Device.java")
+file(REMOVE "${ExperimentalAPI_Device_JAVA_PATH}")
 
 file(
   COPY_FILE
   "${CMAKE_CURRENT_SOURCE_DIR}/FileToolsUpdateAllDataFiles.java"
-  "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/FileToolsUpdateAllDataFiles.java"
+  "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
 )
 
 execute_process(COMMAND ${rw_gradlew_bat} compileJava WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
@@ -50,7 +55,7 @@ file(COPY_FILE
 execute_process(COMMAND ${JAVA_EXE}
   "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
   -cp "${CLASS_PATH}"
-  "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/FileToolsUpdateAllDataFiles.java"
+  "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
   -d "${RAPIDWRIGHT_PATH}"
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
 )
@@ -60,11 +65,24 @@ file(COPY_FILE
   "${RapidWrightAPI_JAVA_PATH}"
 )
 
+file(COPY_FILE
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Device.java"
+  "${ExperimentalAPI_Device_JAVA_PATH}"
+)
+
 execute_process(
   COMMAND ${JAVAC_EXE}
   -cp "${CLASS_PATH}"
   -d "${RAPIDWRIGHT_PATH}/bin"
   "${RapidWrightAPI_JAVA_PATH}"
+  WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
+)
+
+execute_process(
+  COMMAND ${JAVAC_EXE}
+  -cp "${CLASS_PATH}"
+  -d "${RAPIDWRIGHT_PATH}/bin"
+  "${ExperimentalAPI_Device_JAVA_PATH}"
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
 )
 
@@ -88,7 +106,6 @@ execute_process(
 )
   
 add_executable(RapidWrightExample "${graalvmexample_SOURCE_DIR}/RapidWrightExample.cpp")
-
 target_compile_features(RapidWrightExample PUBLIC cxx_std_23)
 target_include_directories(RapidWrightExample PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_directories(RapidWrightExample PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
@@ -96,4 +113,14 @@ target_link_libraries(RapidWrightExample PUBLIC librapidwright.lib)
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR};${PATH}")
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT RapidWrightExample)
+
+add_executable(ExperimentalAPI "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI.cpp")
+target_compile_features(ExperimentalAPI PUBLIC cxx_std_23)
+target_include_directories(ExperimentalAPI PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_directories(ExperimentalAPI PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(ExperimentalAPI PUBLIC librapidwright.lib)
+set_target_properties(ExperimentalAPI PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR};${PATH}")
+set_target_properties(ExperimentalAPI PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
+set_target_properties(ExperimentalAPI PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
+
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ExperimentalAPI)
