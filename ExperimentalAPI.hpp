@@ -25,7 +25,7 @@ namespace GraalVM_Native_Image {
       return *this;
     }
 
-    explicit inline String(graal_isolatethread_t* thread, char* str) noexcept :
+    inline explicit String(graal_isolatethread_t* thread, char* str) noexcept :
       thread{ thread },
       str{ str } {}
 
@@ -37,7 +37,7 @@ namespace GraalVM_Native_Image {
       }
     }
 
-    operator const char* () const noexcept {
+    inline operator const char* () const noexcept {
       return str;
     }
   };
@@ -59,7 +59,7 @@ namespace GraalVM_Native_Image {
       return *this;
     }
 
-    explicit inline Tile(graal_isolatethread_t* thread, int64_t id) noexcept :
+    inline explicit Tile(graal_isolatethread_t* thread, int64_t id) noexcept :
       thread{ thread },
       id{ id } {}
 
@@ -93,7 +93,7 @@ namespace GraalVM_Native_Image {
       return *this;
     }
 
-    explicit inline Device(graal_isolatethread_t* thread, int64_t id) noexcept :
+    inline explicit Device(graal_isolatethread_t* thread, int64_t id) noexcept :
       thread{ thread },
       id{ id } {}
 
@@ -127,7 +127,7 @@ namespace GraalVM_Native_Image {
       return *this;
     }
 
-    explicit inline Isolate(graal_isolate_t* isolate, graal_isolatethread_t* thread) noexcept :
+    inline explicit Isolate(graal_isolate_t* isolate, graal_isolatethread_t* thread) noexcept :
       isolate{ isolate },
       thread{ thread } {}
 
