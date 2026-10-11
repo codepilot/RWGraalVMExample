@@ -114,7 +114,11 @@ set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAP
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
 
-add_executable(ExperimentalAPI "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI.cpp")
+add_executable(ExperimentalAPI
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI.hpp"
+)
+
 target_compile_features(ExperimentalAPI PUBLIC cxx_std_23)
 target_include_directories(ExperimentalAPI PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_directories(ExperimentalAPI PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
