@@ -26,28 +26,46 @@ set(rw_gradlew_bat "${rapidwright_SOURCE_DIR}/gradlew.bat")
 
 set(RAPIDWRIGHT_PATH "${rapidwright_SOURCE_DIR}")
 
+set(RapidWrightAPI_JAVA_PATH "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/RapidWrightAPI.java")
+file(REMOVE "${RapidWrightAPI_JAVA_PATH}")
 
-# file(REMOVE ${RAPIDWRIGHT_PATH}/bin/com/xilinx/rapidwright/util/RapidWright.class)
-# file(REMOVE ${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/util/RapidWright.java)
-file(REMOVE "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/RapidWrightAPI.java")
-
-file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/FileToolsUpdateAllDataFiles.java" "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/FileToolsUpdateAllDataFiles.java")
+file(
+  COPY_FILE
+  "${CMAKE_CURRENT_SOURCE_DIR}/FileToolsUpdateAllDataFiles.java"
+  "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/FileToolsUpdateAllDataFiles.java"
+)
 
 execute_process(COMMAND ${rw_gradlew_bat} compileJava WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
 set(CLASS_PATH "${RAPIDWRIGHT_PATH}/build/libs/main.jar;${RAPIDWRIGHT_PATH}/build/libs/rapidwright.jar")
 
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI")
-file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/reachability-metadata.json" "${CMAKE_CURRENT_BINARY_DIR}/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI/reachability-metadata.json")
+set(REFLECTION_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI")
 
-execute_process(COMMAND ${JAVA_EXE} "-agentlib:native-image-agent=config-merge-dir=${CMAKE_CURRENT_BINARY_DIR}/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI" -cp "${CLASS_PATH}" "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/FileToolsUpdateAllDataFiles.java" -d "${RAPIDWRIGHT_PATH}" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH})
+file(MAKE_DIRECTORY "${REFLECTION_CONFIG_DIR}")
 
-file(COPY_FILE "${graalvmexample_SOURCE_DIR}/RapidWrightAPI.java" "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/RapidWrightAPI.java")
+file(COPY_FILE
+  "${CMAKE_CURRENT_SOURCE_DIR}/reachability-metadata.json"
+  "${REFLECTION_CONFIG_DIR}/reachability-metadata.json"
+)
 
-execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/RapidWrightAPI.java" -d "${RAPIDWRIGHT_PATH}/bin" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
+execute_process(COMMAND ${JAVA_EXE}
+  "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
+  -cp "${CLASS_PATH}"
+  "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples/FileToolsUpdateAllDataFiles.java"
+  -d "${RAPIDWRIGHT_PATH}"
+  WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
+)
 
-file(ARCHIVE_EXTRACT
-  INPUT "${rapidwright_SOURCE_DIR}/jars/zstd-jni-1.5.5-1.jar" 
-  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/zstd-jni-1.5.5-1"
+file(COPY_FILE
+  "${graalvmexample_SOURCE_DIR}/RapidWrightAPI.java"
+  "${RapidWrightAPI_JAVA_PATH}"
+)
+
+execute_process(
+  COMMAND ${JAVAC_EXE}
+  -cp "${CLASS_PATH}"
+  -d "${RAPIDWRIGHT_PATH}/bin"
+  "${RapidWrightAPI_JAVA_PATH}"
+  WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
 )
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
