@@ -157,6 +157,9 @@ target_compile_features(ExperimentalAPI_st PUBLIC cxx_std_23)
 target_include_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
+target_include_directories(ExperimentalAPI_mt PUBLIC "${rapidwright_SOURCE_DIR}/build/experimental")
+target_include_directories(ExperimentalAPI_st PUBLIC "${rapidwright_SOURCE_DIR}/build/experimental")
+
 target_link_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 

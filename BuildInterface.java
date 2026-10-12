@@ -93,16 +93,52 @@ public class BuildInterface {
 
     for(final ClassModel classModel: classModels) {
       final String className = classModel.thisClass().asInternalName().replace('/', '.');
+      final String class_name = classModel.thisClass().asInternalName().replace('/', '_');
 
-      final String str_st_java = "./src/com/xilinx/rapidwright/experimental/st_" + className.replace('.', '_') + ".java";
+      final String str_st_java = "./src/com/xilinx/rapidwright/experimental/st_" + class_name + ".java";
       final FileWriter st_java = new FileWriter(str_st_java);
 
       final Path str_st_java_path = Paths.get(str_st_java).toAbsolutePath();
 
       java_file_list.write(str_st_java_path.normalize().toString() + "\n");
 
-      final FileWriter st_hpp = new FileWriter("./build/experimental/st_" + className.replace('.', '_') + ".hpp");
-      st_hpp.write("struct experimental_st_" + className.replace('.', '_') + ";\n");
+      final FileWriter st_hpp = new FileWriter("./build/experimental/st_" + class_name + ".hpp");
+
+      st_hpp.write("#pragma once\n");
+      st_hpp.write("\n");
+      st_hpp.write("#include <optional>\n");
+      st_hpp.write("#include <utility>\n");
+      st_hpp.write("#include <cstdlib>\n");
+      st_hpp.write("\n");
+      st_hpp.write("// This is the header file created by native-image (Graal)\n");
+      st_hpp.write("#include <librapidwright.h>\n");
+      st_hpp.write("\n");
+      st_hpp.write("namespace GraalVM_Native_Image {\n");
+
+      st_hpp.write("  struct " + class_name + " {\n");
+      st_hpp.write("    int64_t id;\n");
+      st_hpp.write("    " + class_name + "(const " + class_name + "& other) = delete;\n");
+      st_hpp.write("\n");
+      st_hpp.write("    " + class_name + "& operator=(const " + class_name + "& other) = delete;\n");
+      st_hpp.write("\n");
+      st_hpp.write("    inline " + class_name + "(" + class_name + "&& other) noexcept :\n");
+      st_hpp.write("      id{ std::exchange(other.id, 0) } {}\n");
+      st_hpp.write("\n");
+      st_hpp.write("    inline " + class_name + "& operator=(" + class_name + "&& other) noexcept {\n");
+      st_hpp.write("      std::swap(*this, other);\n");
+      st_hpp.write("      return *this;\n");
+      st_hpp.write("    }\n");
+      st_hpp.write("\n");
+      st_hpp.write("    inline explicit " + class_name + "(int64_t id) noexcept :\n");
+      st_hpp.write("      id{ id } {}\n");
+      st_hpp.write("\n");
+      st_hpp.write("    inline ~" + class_name + "() noexcept {\n");
+      st_hpp.write("      if (id) {\n");
+      st_hpp.write("        st_" + class_name + "_free_instance(globalIsolate._thread, id);\n");
+      st_hpp.write("      }\n");
+      st_hpp.write("    }\n");
+
+      st_hpp.write("\n");
 
       st_java.write("package com.xilinx.rapidwright.experimental;\n");
 
@@ -121,13 +157,13 @@ public class BuildInterface {
 
       st_java.write("\n");
 
-      st_java.write("public class st_" + className.replace('.', '_') + " {\n");
+      st_java.write("public class st_" + class_name + " {\n");
       st_java.write("  private static long instance_counter = 1L;\n");
       st_java.write("  private static final Map<Long, " + className + "> instance_map = new HashMap<>();\n");
 
       st_java.write("\n");
-      st_java.write("  @CEntryPoint(name = \"st_" + className.replace('.', '_') + "_free_instance\")\n");
-      st_java.write("  public static void st_" + className.replace('.', '_') + "_free_instance(IsolateThread thread, final long id) {\n");
+      st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_free_instance\")\n");
+      st_java.write("  public static void st_" + class_name + "_free_instance(IsolateThread thread, final long id) {\n");
       st_java.write("    instance_map.remove(id);\n");
       st_java.write("  }\n");
 
@@ -143,16 +179,25 @@ public class BuildInterface {
         if(accessFlags.has(AccessFlag.STATIC)) {
           if(field_type_class_desc.isPrimitive()) {
             st_java.write("\n");
-            st_java.write("  @CEntryPoint(name = \"st_" + className.replace('.', '_') + "_get_static_field_" + field_name + "\")\n");
-            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + className.replace('.', '_') + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
+            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_get_static_field_" + field_name + "\")\n");
+            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + class_name + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
             st_java.write("    return " + className + "." + field_name +";\n");
             st_java.write("  }\n");
+
+            if(accessFlags.has(AccessFlag.FINAL)) {
+              st_hpp.write("  inline static const auto " + field_name + "{st_" + class_name + "_get_static_field_" + field_name + "(GraalVM_Native_Image::globalIsolate._thread)};\n");
+            } else {
+              st_hpp.write("\n");
+              st_hpp.write("  static auto " + field_name + "() noexcept {\n");
+              st_hpp.write("    return st_" + class_name + "_get_static_field_" + field_name + "(GraalVM_Native_Image::globalIsolate._thread);\n");
+              st_hpp.write("}\n");
+            }
           }
         } else {
           if(field_type_class_desc.isPrimitive()) {
             st_java.write("\n");
-            st_java.write("  @CEntryPoint(name = \"st_" + className.replace('.', '_') + "_get_field_" + field_name + "\")\n");
-            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + className.replace('.', '_') + "_get_field_" + field_name + "(IsolateThread thread, long instance_id) {\n");
+            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_get_field_" + field_name + "\")\n");
+            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, long instance_id) {\n");
             st_java.write("    return instance_map.get(instance_id)." + field_name +";\n");
             st_java.write("  }\n");
           }
@@ -160,6 +205,8 @@ public class BuildInterface {
       }
 
       st_java.write("}\n");
+      st_hpp.write("  };\n");
+      st_hpp.write("};\n");
 
       // System.out.println("    methods:");
       // for(Method method: cls.getMethods()) {
