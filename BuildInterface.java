@@ -14,8 +14,14 @@ import java.lang.classfile.CodeElement;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.FieldModel;
 import java.lang.classfile.AccessFlags;
+import java.lang.classfile.Attribute;
+import java.lang.classfile.attribute.CodeAttribute;
+import java.lang.classfile.attribute.ExceptionsAttribute;
+import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.reflect.AccessFlag;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.MethodTypeDesc;
+import java.lang.Integer;
 
 import java.net.JarURLConnection;
 import java.net.URL;
@@ -65,8 +71,8 @@ public class BuildInterface {
       if(className.startsWith("com.xilinx.rapidwright.placer.handplacer.")) continue;
       if(className.startsWith("com.xilinx.rapidwright.design.blocks.")) continue;
       if(className.startsWith("com.xilinx.rapidwright.device.browser.")) continue;
+      if(className.startsWith("com.xilinx.rapidwright.debug")) continue;
       if(className.equals("com.xilinx.rapidwright.util.a")) continue;
-      
 
       if(className.contains("$")) continue;
 
@@ -79,8 +85,24 @@ public class BuildInterface {
         if(!classModel.flags().has(AccessFlag.PUBLIC)) { continue; }
         if(classModel.flags().has(AccessFlag.PRIVATE)) { continue; }
         if(classModel.flags().has(AccessFlag.PROTECTED)) { continue; }
+        if(classModel.flags().has(AccessFlag.ABSTRACT)) { continue; }
         classModels.add(classModel);
       } catch(IOException e) {
+      }
+    }
+  }
+
+  public static void method_throws(final FileWriter st_java, final String class_name, final MethodModel methodModel) throws IOException {
+    final String methodModel_name = methodModel.methodName().stringValue();
+    for(final Attribute<?> attribute: methodModel.attributes()) {
+      if(attribute instanceof ExceptionsAttribute) {
+        ExceptionsAttribute exceptionsAttribute = (ExceptionsAttribute)attribute;
+        // System.out.println("  // " + class_name + "." + methodModel_name + " " + attribute.attributeName().stringValue() + " ");
+        st_java.write(" throws");
+        for(ClassEntry classEntryException: exceptionsAttribute.exceptions()) {
+          ClassDesc classDescException = classEntryException.asSymbol();
+          st_java.write(" " + classDescException.packageName() + "." + classDescException.displayName() + "");
+        }
       }
     }
   }
@@ -106,38 +128,45 @@ public class BuildInterface {
 
       st_hpp.write("#pragma once\n");
       st_hpp.write("\n");
+
       st_hpp.write("#include <optional>\n");
       st_hpp.write("#include <utility>\n");
       st_hpp.write("#include <cstdlib>\n");
       st_hpp.write("\n");
+
       st_hpp.write("// This is the header file created by native-image (Graal)\n");
       st_hpp.write("#include <librapidwright.h>\n");
       st_hpp.write("\n");
+
       st_hpp.write("namespace GraalVM_Native_Image {\n");
 
       st_hpp.write("  struct " + class_name + " {\n");
-      st_hpp.write("    int64_t id;\n");
+      st_hpp.write("    uint64_t id;\n");
       st_hpp.write("    " + class_name + "(const " + class_name + "& other) = delete;\n");
       st_hpp.write("\n");
+
       st_hpp.write("    " + class_name + "& operator=(const " + class_name + "& other) = delete;\n");
       st_hpp.write("\n");
+
       st_hpp.write("    inline " + class_name + "(" + class_name + "&& other) noexcept :\n");
       st_hpp.write("      id{ std::exchange(other.id, 0) } {}\n");
       st_hpp.write("\n");
+
       st_hpp.write("    inline " + class_name + "& operator=(" + class_name + "&& other) noexcept {\n");
       st_hpp.write("      std::swap(*this, other);\n");
       st_hpp.write("      return *this;\n");
       st_hpp.write("    }\n");
       st_hpp.write("\n");
-      st_hpp.write("    inline explicit " + class_name + "(int64_t id) noexcept :\n");
+
+      st_hpp.write("    inline explicit " + class_name + "(uint64_t id) noexcept :\n");
       st_hpp.write("      id{ id } {}\n");
       st_hpp.write("\n");
+
       st_hpp.write("    inline ~" + class_name + "() noexcept {\n");
       st_hpp.write("      if (id) {\n");
       st_hpp.write("        st_" + class_name + "_free_instance(globalIsolate._thread, id);\n");
       st_hpp.write("      }\n");
       st_hpp.write("    }\n");
-
       st_hpp.write("\n");
 
       st_java.write("package com.xilinx.rapidwright.experimental;\n");
@@ -148,10 +177,9 @@ public class BuildInterface {
       st_java.write("import org.graalvm.nativeimage.c.type.CCharPointer;\n");
       st_java.write("import org.graalvm.nativeimage.c.type.CTypeConversion;\n");
       st_java.write("import org.graalvm.nativeimage.c.type.CConst;\n");
+      st_java.write("import org.graalvm.nativeimage.c.type.CUnsigned;\n");
       st_java.write("import org.graalvm.word.UnsignedWord;\n");
       st_java.write("import org.graalvm.word.WordFactory;\n");
-      st_java.write("import com.xilinx.rapidwright.device.Device;\n");
-      st_java.write("import com.xilinx.rapidwright.device.Tile;\n");
       st_java.write("import java.util.HashMap;\n");
       st_java.write("import java.util.Map;\n");
 
@@ -163,7 +191,7 @@ public class BuildInterface {
 
       st_java.write("\n");
       st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_free_instance\")\n");
-      st_java.write("  public static void st_" + class_name + "_free_instance(IsolateThread thread, final long id) {\n");
+      st_java.write("  public static void st_" + class_name + "_free_instance(IsolateThread thread, final @CUnsigned long id) {\n");
       st_java.write("    instance_map.remove(id);\n");
       st_java.write("  }\n");
 
@@ -185,44 +213,106 @@ public class BuildInterface {
             st_java.write("  }\n");
 
             if(accessFlags.has(AccessFlag.FINAL)) {
-              st_hpp.write("  inline static const auto " + field_name + "{st_" + class_name + "_get_static_field_" + field_name + "(GraalVM_Native_Image::globalIsolate._thread)};\n");
+              st_hpp.write("    inline static const auto " + field_name + "{st_" + class_name + "_get_static_field_" + field_name + "(globalIsolate._thread)};\n");
             } else {
               st_hpp.write("\n");
-              st_hpp.write("  static auto " + field_name + "() noexcept {\n");
-              st_hpp.write("    return st_" + class_name + "_get_static_field_" + field_name + "(GraalVM_Native_Image::globalIsolate._thread);\n");
-              st_hpp.write("}\n");
+              st_hpp.write("    static auto " + field_name + "() noexcept {\n");
+              st_hpp.write("      return st_" + class_name + "_get_static_field_" + field_name + "(globalIsolate._thread);\n");
+              st_hpp.write("    }\n");
             }
           }
         } else {
           if(field_type_class_desc.isPrimitive()) {
             st_java.write("\n");
             st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_get_field_" + field_name + "\")\n");
-            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, long instance_id) {\n");
+            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, @CUnsigned long instance_id) {\n");
             st_java.write("    return instance_map.get(instance_id)." + field_name +";\n");
             st_java.write("  }\n");
           }
         }
       }
 
-      st_java.write("}\n");
-      st_hpp.write("  };\n");
-      st_hpp.write("};\n");
+      for(final MethodModel methodModel: classModel.methods()) {
+        final String methodModel_name = methodModel.methodName().stringValue();
+        if(methodModel_name.length() <= 1) continue;
 
-      // System.out.println("    methods:");
-      // for(Method method: cls.getMethods()) {
-      //   System.out.println("      " + method);
-      // }
+        final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
+        final ClassDesc returnTypeDesc = methodTypeDesc.returnType();
+        final AccessFlags accessFlags = methodModel.flags();
+        if(!accessFlags.has(AccessFlag.PUBLIC)) continue;
+        if(accessFlags.has(AccessFlag.PRIVATE)) continue;
+        if(!returnTypeDesc.isPrimitive()) continue;
+        if(methodTypeDesc.parameterCount() != 0) {
+          continue;
+        }
 
-      // System.out.println("    constructors:");
-      // for(Constructor<?> constructor: cls.getConstructors()) {
-      //   System.out.println("      " + constructor);
-      // }
+        if(accessFlags.has(AccessFlag.STATIC)) {
+            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+            st_java.write("  public static " + returnTypeDesc.displayName() + " " + methodModel_name + "(IsolateThread thread)");
+            method_throws(st_java, class_name, methodModel);
+            st_java.write(" {\n");
+            if(returnTypeDesc.displayName().equals("void")) {
+              st_java.write("    " + className + "." + methodModel_name + "();\n");
+            } else {
+              st_java.write("    return " + className + "." + methodModel_name + "();\n");
+            }
+            st_java.write("  }\n");
+        } else {
+          if(methodModel_name.equals("<init>")) {
+            st_java.write("\n");
+            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_init\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+            st_java.write("  @CUnsigned\n");
+            st_java.write("  public static long st_" + class_name + "_init(IsolateThread thread)");
+            method_throws(st_java, class_name, methodModel);
+            st_java.write(" {\n");
+            st_java.write("    final " + className + " instance = new " + className + "();\n");
+            st_java.write("    final long id = instance_counter++;\n");
+            st_java.write("    instance_map.put(id, instance);\n");
+            st_java.write("    return id;\n");
+            st_java.write("  }\n");
+
+            st_hpp.write("    inline explicit " + class_name + "() noexcept :\n");
+            st_hpp.write("      id{ st_" + class_name + "_init(globalIsolate._thread) } {}\n");
+            st_hpp.write("\n");
+          } else {
+            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+            st_java.write("  public static " + returnTypeDesc.displayName() + " " + methodModel_name + "(IsolateThread thread, final @CUnsigned long id)");
+            method_throws(st_java, class_name, methodModel);
+            st_java.write(" {\n");
+            st_java.write("    final " + className + " instance = instance_map.get(id);\n");
+            if(returnTypeDesc.displayName().equals("void")) {
+              st_java.write("    instance." + methodModel_name + "();\n");
+            } else {
+              st_java.write("    return instance." + methodModel_name + "();\n");
+            }
+            st_java.write("  }\n");
+          }
+
+          // // System.out.println("      " + class_name + "." + methodModel_name + " " + methodTypeDesc.displayDescriptor());
+          // for(ClassDesc param: methodTypeDesc.parameterArray()) {
+          //   if(param.isPrimitive()) {
+          //     // System.out.println("        " + param.displayName());
+          //   }
+          //   if(param.isClassOrInterface()) {
+          //     // System.out.println("        " + param.packageName() + "." + param.displayName());
+          //   }
+          //   if(param.isArray()) {
+          //     // System.out.println("        " + param.displayName());
+          //   }
+          // }
+        }
+      }
+
       // if(cls.isEnum()) {
       //   System.out.println("    enums:");
       //   for (Object enum_obj : cls.getEnumConstants()) {
       //     System.out.println("      " + enum_obj);
       //   }
       // }
+      st_java.write("}\n");
+      st_hpp.write("  };\n");
+      st_hpp.write("};\n");
+
       st_java.close();
       st_hpp.close();
     }
