@@ -10,10 +10,10 @@ using Device = GraalVM_Native_Image::Device;
 
 int main(int argc, char **argv) {
 
-  std::println("RAPIDWRIGHT_YEAR_VERSION: {}", st_com_xilinx_rapidwright_device_Device_get_field_RAPIDWRIGHT_YEAR_VERSION(GraalVM_Native_Image::globalIsolate._thread));
-  std::println("RAPIDWRIGHT_QUARTER_VERSION: {}", st_com_xilinx_rapidwright_device_Device_get_field_RAPIDWRIGHT_QUARTER_VERSION(GraalVM_Native_Image::globalIsolate._thread));
-  std::println("RAPIDWRIGHT_MINOR_VERSION: {}", st_com_xilinx_rapidwright_device_Device_get_field_RAPIDWRIGHT_MINOR_VERSION(GraalVM_Native_Image::globalIsolate._thread));
-  std::println("QUIET_MESSAGE: {}", st_com_xilinx_rapidwright_device_Device_get_field_QUIET_MESSAGE(GraalVM_Native_Image::globalIsolate._thread));
+  std::println("RAPIDWRIGHT_YEAR_VERSION: {}", st_com_xilinx_rapidwright_device_Device_get_static_field_RAPIDWRIGHT_YEAR_VERSION(GraalVM_Native_Image::globalIsolate._thread));
+  std::println("RAPIDWRIGHT_QUARTER_VERSION: {}", st_com_xilinx_rapidwright_device_Device_get_static_field_RAPIDWRIGHT_QUARTER_VERSION(GraalVM_Native_Image::globalIsolate._thread));
+  std::println("RAPIDWRIGHT_MINOR_VERSION: {}", st_com_xilinx_rapidwright_device_Device_get_static_field_RAPIDWRIGHT_MINOR_VERSION(GraalVM_Native_Image::globalIsolate._thread));
+  std::println("QUIET_MESSAGE: {}", st_com_xilinx_rapidwright_device_Device_get_static_field_QUIET_MESSAGE(GraalVM_Native_Image::globalIsolate._thread));
 
   std::vector<std::string> args;
   args.reserve(argc);

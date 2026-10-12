@@ -37,43 +37,45 @@ import java.nio.file.Paths;
 import java.nio.file.Path;
 
 public class BuildInterface {
-  private static SortedSet<ClassModel> classModels = new TreeSet<ClassModel>((ClassModel s1, ClassModel s2) -> s1.thisClass().asInternalName().compareTo(s2.thisClass().asInternalName()));
+  private final static SortedSet<ClassModel> classModels = new TreeSet<ClassModel>((ClassModel s1, ClassModel s2) -> s1.thisClass().asInternalName().compareTo(s2.thisClass().asInternalName()));
 
-  private static void jarPath(String jp) throws IOException {
-    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+  private static void jarPath(final String jp) throws IOException {
+    final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
-    Path currentPath = Paths.get(jp).toAbsolutePath();
-    String abs_jp = "jar:file:" + currentPath.normalize().toString() + "!/";
+    final Path currentPath = Paths.get(jp).toAbsolutePath();
+    final String abs_jp = "jar:file:" + currentPath.normalize().toString() + "!/";
 
-    URL url = new URL(abs_jp);
-    JarURLConnection jarConnection = (JarURLConnection)url.openConnection();
-    JarFile jarFile = jarConnection.getJarFile();
-    Enumeration<JarEntry> entries = jarFile.entries();
+    final URL url = new URL(abs_jp);
+    final JarURLConnection jarConnection = (JarURLConnection)url.openConnection();
+    final JarFile jarFile = jarConnection.getJarFile();
+    final Enumeration<JarEntry> entries = jarFile.entries();
     while (entries.hasMoreElements()) {
-      JarEntry entry = entries.nextElement();
+      final JarEntry entry = entries.nextElement();
 
       if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
         continue;
       }
-      String className = entry.getName()
+      final String className = entry.getName()
         .substring(0, entry.getName().length() - 6)
         .replace('/', '.');
 
-      if(!className.startsWith("com.xilinx.rapidwright")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.gui")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.examples")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.placer.handplacer")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.design.blocks")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.device.browser")) continue;
+      if(!className.startsWith("com.xilinx.rapidwright.")) continue;
+      if(className.startsWith("com.xilinx.rapidwright.gui.")) continue;
+      if(className.startsWith("com.xilinx.rapidwright.examples.")) continue;
+      if(className.startsWith("com.xilinx.rapidwright.placer.handplacer.")) continue;
+      if(className.startsWith("com.xilinx.rapidwright.design.blocks.")) continue;
+      if(className.startsWith("com.xilinx.rapidwright.device.browser.")) continue;
+      if(className.equals("com.xilinx.rapidwright.util.a")) continue;
+      
 
       if(className.contains("$")) continue;
 
       try {
-        InputStream is = jarFile.getInputStream(entry);
-        byte[] classBytes = is.readAllBytes();
+        final InputStream is = jarFile.getInputStream(entry);
+        final byte[] classBytes = is.readAllBytes();
         
-        ClassFile cf = ClassFile.of();
-        ClassModel classModel = cf.parse(classBytes);
+        final ClassFile cf = ClassFile.of();
+        final ClassModel classModel = cf.parse(classBytes);
         if(!classModel.flags().has(AccessFlag.PUBLIC)) { continue; }
         if(classModel.flags().has(AccessFlag.PRIVATE)) { continue; }
         if(classModel.flags().has(AccessFlag.PROTECTED)) { continue; }
@@ -83,23 +85,23 @@ public class BuildInterface {
     }
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(final String[] args) throws IOException {
     jarPath("./jars/rapidwright-api-lib-2026.1.1.jar");
     jarPath("./build/libs/rapidwright.jar");
 
-    FileWriter java_file_list = new FileWriter("./build/java_file_list.txt");
+    final FileWriter java_file_list = new FileWriter("./build/java_file_list.txt");
 
-    for(ClassModel classModel: classModels) {
-      String className = classModel.thisClass().asInternalName().replace('/', '.');
+    for(final ClassModel classModel: classModels) {
+      final String className = classModel.thisClass().asInternalName().replace('/', '.');
 
-      String str_st_java = "./src/com/xilinx/rapidwright/experimental/st_" + className.replace('.', '_') + ".java";
-      FileWriter st_java = new FileWriter(str_st_java);
+      final String str_st_java = "./src/com/xilinx/rapidwright/experimental/st_" + className.replace('.', '_') + ".java";
+      final FileWriter st_java = new FileWriter(str_st_java);
 
-      Path str_st_java_path = Paths.get(str_st_java).toAbsolutePath();
+      final Path str_st_java_path = Paths.get(str_st_java).toAbsolutePath();
 
       java_file_list.write(str_st_java_path.normalize().toString() + "\n");
 
-      FileWriter st_hpp = new FileWriter("./build/experimental/st_" + className.replace('.', '_') + ".hpp");
+      final FileWriter st_hpp = new FileWriter("./build/experimental/st_" + className.replace('.', '_') + ".hpp");
       st_hpp.write("struct experimental_st_" + className.replace('.', '_') + ";\n");
 
       st_java.write("package com.xilinx.rapidwright.experimental;\n");
@@ -129,20 +131,29 @@ public class BuildInterface {
       st_java.write("    instance_map.remove(id);\n");
       st_java.write("  }\n");
 
-      for(FieldModel fieldModel: classModel.fields()) {
+      for(final FieldModel fieldModel: classModel.fields()) {
         final AccessFlags accessFlags = fieldModel.flags();
         if(!accessFlags.has(AccessFlag.PUBLIC)) continue;
+        if(accessFlags.has(AccessFlag.PRIVATE)) continue;
 
-        String field_name = fieldModel.fieldName().stringValue();
+        final String field_name = fieldModel.fieldName().stringValue();
+        final String field_type_name = fieldModel.fieldType().stringValue();
+        final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
 
         if(accessFlags.has(AccessFlag.STATIC)) {
-          String field_type_name = fieldModel.fieldType().stringValue();
-          ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
+          if(field_type_class_desc.isPrimitive()) {
+            st_java.write("\n");
+            st_java.write("  @CEntryPoint(name = \"st_" + className.replace('.', '_') + "_get_static_field_" + field_name + "\")\n");
+            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + className.replace('.', '_') + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
+            st_java.write("    return " + className + "." + field_name +";\n");
+            st_java.write("  }\n");
+          }
+        } else {
           if(field_type_class_desc.isPrimitive()) {
             st_java.write("\n");
             st_java.write("  @CEntryPoint(name = \"st_" + className.replace('.', '_') + "_get_field_" + field_name + "\")\n");
-            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + className.replace('.', '_') + "_get_field_" + field_name + "(IsolateThread thread) {\n");
-            st_java.write("    return " + className + "." + field_name +";\n");
+            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + className.replace('.', '_') + "_get_field_" + field_name + "(IsolateThread thread, long instance_id) {\n");
+            st_java.write("    return instance_map.get(instance_id)." + field_name +";\n");
             st_java.write("  }\n");
           }
         }
