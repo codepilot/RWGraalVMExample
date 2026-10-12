@@ -6,47 +6,91 @@
 
 // This is the header file created by native-image (Graal)
 #include <librapidwright.h>
+#include <shared_mutex>
+#include <mutex>
 
 namespace GraalVM_Native_Image {
+
   struct Isolate {
-    graal_isolate_t* isolate;
-    graal_isolatethread_t *thread;
+    inline static const std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
 
-    Isolate(const Isolate& other) = delete;
-
-    Isolate& operator=(const Isolate& other) = delete;
-
-    inline Isolate(Isolate&& other) noexcept :
-      isolate{ std::exchange(other.isolate, nullptr) },
-      thread{ std::exchange(other.thread, nullptr) } {}
-
-    inline Isolate& operator=(Isolate&& other) noexcept {
-      std::swap(*this, other);
-      return *this;
+    inline static bool is_main_thread() noexcept {
+      return std::this_thread::get_id() == MAIN_THREAD_ID;
     }
 
-    inline explicit Isolate(graal_isolate_t* isolate, graal_isolatethread_t* thread) noexcept :
-      isolate{ isolate },
-      thread{ thread } {}
+    mutable std::shared_mutex _mutex;
+    graal_isolate_t* _isolate;
+    graal_isolatethread_t *_thread;
+
+    Isolate(const Isolate& other) = delete; // copy constructor
+    Isolate(Isolate&& other) = delete; //move constructor
+    Isolate& operator=(const Isolate& other) = delete; //copy assignment
+    Isolate& operator=(Isolate&& other) = delete; //move assignment
+
+    inline explicit Isolate() noexcept :
+      _mutex{},
+      _isolate{},
+      _thread{} {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (graal_create_isolate(nullptr, &_isolate, &_thread) != 0) {
+        std::abort();
+      }
+    }
 
     inline ~Isolate() noexcept {
-      if (thread) {
-        if (graal_detach_thread(thread) != 0) {
-          fprintf(stderr, "graal_detach_thread error\n");
-          std::abort();
+      if (_thread) {
+        if (Isolate::is_main_thread()) {
+          if (graal_tear_down_isolate(_thread) != 0) {
+              fprintf(stderr, "graal_tear_down_isolate error\n");
+              std::abort();
+          }
         }
       }
     }
 
-    inline static std::optional<Isolate> create() noexcept {
-      graal_isolate_t* isolate{};
-      graal_isolatethread_t* thread{};
-      if (graal_create_isolate(nullptr, &isolate, &thread) != 0) {
-        return std::nullopt;
-      }
-      return std::make_optional<Isolate>(isolate, thread);
+    inline graal_isolate_t* get_isolate() const noexcept {
+      std::shared_lock<std::shared_mutex> lock(_mutex);
+      return _isolate;
     }
 
   };
-  inline static Isolate globalIsolate{ Isolate::create().value() };
+
+  inline static const Isolate globalIsolate{};
+
+  struct IsolateThread {
+    graal_isolatethread_t* _thread;
+
+    IsolateThread(const IsolateThread& other) = delete; // copy constructor
+    IsolateThread(IsolateThread&& other) = delete; //move constructor
+    IsolateThread& operator=(const IsolateThread& other) = delete; //copy assignment
+    IsolateThread& operator=(IsolateThread&& other) = delete; //move assignment
+
+    inline explicit IsolateThread() noexcept :
+      _thread{} {
+    }
+
+    inline void attach() noexcept {
+      if (graal_attach_thread(globalIsolate.get_isolate(), &_thread) != 0) {
+        std::abort();
+      }
+    }
+
+    inline graal_isolatethread_t* get_thread() noexcept {
+      if (!_thread) attach();
+      return _thread;
+    }
+
+    inline ~IsolateThread() noexcept {
+      if (_thread) {
+        if (!Isolate::is_main_thread()) {
+          if (graal_detach_thread(_thread) != 0) {
+            fprintf(stderr, "graal_detach_thread error\n");
+            std::abort();
+          }
+        }
+      }
+    }
+  };
+
+  inline thread_local IsolateThread threadIsolate{};
 };

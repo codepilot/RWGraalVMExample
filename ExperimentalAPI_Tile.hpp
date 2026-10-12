@@ -28,11 +28,11 @@ namespace GraalVM_Native_Image {
 
     inline ~Tile() noexcept {
       if (id) {
-        Tile_freeId(globalIsolate.thread, id);
+        Tile_freeId(threadIsolate.get_thread(), id);
       }
     }
     inline String getName() const noexcept {
-      auto str{ Tile_getName(globalIsolate.thread, id) };
+      auto str{ Tile_getName(threadIsolate.get_thread(), id) };
       return String{ str };
     }
   };

@@ -28,15 +28,15 @@ namespace GraalVM_Native_Image {
 
     inline ~Device() noexcept {
       if (id) {
-        Device_freeId(globalIsolate.thread, id);
+        Device_freeId(threadIsolate.get_thread(), id);
       }
     }
     inline Tile getTile(const int32_t row, const int32_t col) const noexcept {
-      const auto tileID{ Device_getTile(globalIsolate.thread, id, row, col) };
+      const auto tileID{ Device_getTile(threadIsolate.get_thread(), id, row, col) };
       return Tile{ tileID };
     }
     inline static Device getDevice(const char* devName) noexcept {
-      const auto deviceID{ Device_getDevice(globalIsolate.thread, devName) };
+      const auto deviceID{ Device_getDevice(threadIsolate.get_thread(), devName) };
       return Device{ deviceID };
     }
   };

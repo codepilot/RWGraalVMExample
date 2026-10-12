@@ -28,7 +28,7 @@ namespace GraalVM_Native_Image {
 
     inline ~String() noexcept {
       if (str) {
-        freeString(globalIsolate.thread, str);
+        freeString(threadIsolate.get_thread(), str);
       }
     }
 
