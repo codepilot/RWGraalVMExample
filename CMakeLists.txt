@@ -36,13 +36,25 @@ set(ExperimentalAPI_mt_Device_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/Experiment
 file(REMOVE "${ExperimentalAPI_st_Device_JAVA_PATH}")
 file(REMOVE "${ExperimentalAPI_mt_Device_JAVA_PATH}")
 
+file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/build/experimental")
+file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
+file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/bin/com/xilinx/rapidwright/experimental")
+
 file(
   COPY_FILE
   "${CMAKE_CURRENT_SOURCE_DIR}/FileToolsUpdateAllDataFiles.java"
   "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
 )
 
+file(
+  COPY_FILE
+  "${CMAKE_CURRENT_SOURCE_DIR}/BuildInterface.java"
+  "${RAPIDWRIGHT_EXAMPLES_PATH}/BuildInterface.java"
+)
+
 execute_process(COMMAND ${rw_gradlew_bat} compileJava WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
+execute_process(COMMAND ${rw_gradlew_bat} jar WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
+
 set(CLASS_PATH "${RAPIDWRIGHT_PATH}/build/libs/main.jar;${RAPIDWRIGHT_PATH}/build/libs/rapidwright.jar")
 
 set(REFLECTION_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI")
@@ -58,6 +70,17 @@ execute_process(COMMAND ${JAVA_EXE}
   "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
   -cp "${CLASS_PATH}"
   "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
+  -d "${RAPIDWRIGHT_PATH}"
+  WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
+)
+
+file(MAKE_DIRECTORY "${rapidwright_SOURCE_DIR}/build/experimental")
+file(MAKE_DIRECTORY "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
+
+execute_process(COMMAND ${JAVA_EXE}
+  "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
+  -cp "${CLASS_PATH}"
+  "${RAPIDWRIGHT_EXAMPLES_PATH}/BuildInterface.java"
   -d "${RAPIDWRIGHT_PATH}"
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
 )
@@ -80,6 +103,7 @@ execute_process(
 
 execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "${ExperimentalAPI_st_Device_JAVA_PATH}" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "${ExperimentalAPI_mt_Device_JAVA_PATH}" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
+execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "@${rapidwright_SOURCE_DIR}/build/java_file_list.txt" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
 
@@ -148,4 +172,4 @@ set_target_properties(ExperimentalAPI_st PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENT
 set_target_properties(ExperimentalAPI_mt PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
 set_target_properties(ExperimentalAPI_st PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
 
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ExperimentalAPI_mt)
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ExperimentalAPI_st)
