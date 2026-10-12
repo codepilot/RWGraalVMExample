@@ -5,15 +5,15 @@
 
 #include "ExperimentalAPI.hpp"
 
+using Device = GraalVM_Native_Image::Device;
+
 int main(int argc, char **argv) {
 
   std::vector<std::string> args;
   args.reserve(argc);
   std::ranges::copy(std::span<char*>(argv, static_cast<std::size_t>(argc)).subspan(1), std::back_inserter(args));
 
-  const auto isolate{ GraalVM_Native_Image::Isolate::create() };
-
-  const auto device{isolate->getDevice(args.at(0).c_str())};
+  const auto device{ Device::getDevice(args.at(0).c_str())};
 
   int maxRow = 105;
   int maxCol = 105;

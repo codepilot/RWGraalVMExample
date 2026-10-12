@@ -117,6 +117,10 @@ set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_WORKING_DIRECTOR
 add_executable(ExperimentalAPI
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Device.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Isolate.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_String.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Tile.hpp"
 )
 
 target_compile_features(ExperimentalAPI PUBLIC cxx_std_23)
