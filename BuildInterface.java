@@ -141,7 +141,7 @@ public class BuildInterface {
       st_hpp.write("namespace GraalVM_Native_Image {\n");
 
       st_hpp.write("  struct " + class_name + " {\n");
-      st_hpp.write("    uint64_t id;\n");
+      st_hpp.write("    void* handle;\n");
       st_hpp.write("    " + class_name + "(const " + class_name + "& other) = delete;\n");
       st_hpp.write("\n");
 
@@ -149,7 +149,7 @@ public class BuildInterface {
       st_hpp.write("\n");
 
       st_hpp.write("    inline " + class_name + "(" + class_name + "&& other) noexcept :\n");
-      st_hpp.write("      id{ std::exchange(other.id, 0) } {}\n");
+      st_hpp.write("      handle{ std::exchange(other.handle, nullptr) } {}\n");
       st_hpp.write("\n");
 
       st_hpp.write("    inline " + class_name + "& operator=(" + class_name + "&& other) noexcept {\n");
@@ -158,41 +158,38 @@ public class BuildInterface {
       st_hpp.write("    }\n");
       st_hpp.write("\n");
 
-      st_hpp.write("    inline explicit " + class_name + "(uint64_t id) noexcept :\n");
-      st_hpp.write("      id{ id } {}\n");
+      st_hpp.write("    inline explicit " + class_name + "(void* handle) noexcept :\n");
+      st_hpp.write("      handle{ handle } {}\n");
       st_hpp.write("\n");
 
       st_hpp.write("    inline ~" + class_name + "() noexcept {\n");
-      st_hpp.write("      if (id) {\n");
-      st_hpp.write("        st_" + class_name + "_free_instance(globalIsolate._thread, id);\n");
+      st_hpp.write("      if (handle) {\n");
+      st_hpp.write("        st_" + class_name + "_free_instance(globalIsolate._thread, handle);\n");
       st_hpp.write("      }\n");
       st_hpp.write("    }\n");
       st_hpp.write("\n");
 
       st_java.write("package com.xilinx.rapidwright.experimental;\n");
+      st_java.write("\n");
 
+      st_java.write("import org.graalvm.nativeimage.ObjectHandle;\n");
+      st_java.write("import org.graalvm.nativeimage.ObjectHandles;\n");
       st_java.write("import org.graalvm.nativeimage.IsolateThread;\n");
       st_java.write("import org.graalvm.nativeimage.UnmanagedMemory;\n");
       st_java.write("import org.graalvm.nativeimage.c.function.CEntryPoint;\n");
       st_java.write("import org.graalvm.nativeimage.c.type.CCharPointer;\n");
       st_java.write("import org.graalvm.nativeimage.c.type.CTypeConversion;\n");
       st_java.write("import org.graalvm.nativeimage.c.type.CConst;\n");
-      st_java.write("import org.graalvm.nativeimage.c.type.CUnsigned;\n");
       st_java.write("import org.graalvm.word.UnsignedWord;\n");
       st_java.write("import org.graalvm.word.WordFactory;\n");
-      st_java.write("import java.util.HashMap;\n");
-      st_java.write("import java.util.Map;\n");
-
       st_java.write("\n");
 
       st_java.write("public class st_" + class_name + " {\n");
-      st_java.write("  private static long instance_counter = 1L;\n");
-      st_java.write("  private static final Map<Long, " + className + "> instance_map = new HashMap<>();\n");
-
       st_java.write("\n");
+
       st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_free_instance\")\n");
-      st_java.write("  public static void st_" + class_name + "_free_instance(IsolateThread thread, final @CUnsigned long id) {\n");
-      st_java.write("    instance_map.remove(id);\n");
+      st_java.write("  public static void st_" + class_name + "_free_instance(IsolateThread thread, final ObjectHandle handle) {\n");
+      st_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
       st_java.write("  }\n");
 
       for(final FieldModel fieldModel: classModel.fields()) {
@@ -225,8 +222,9 @@ public class BuildInterface {
           if(field_type_class_desc.isPrimitive()) {
             st_java.write("\n");
             st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_get_field_" + field_name + "\")\n");
-            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, @CUnsigned long instance_id) {\n");
-            st_java.write("    return instance_map.get(instance_id)." + field_name +";\n");
+            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, final ObjectHandle handle) {\n");
+            st_java.write("    final " + className + " instance = ObjectHandles.getGlobal().get(handle);\n");
+            st_java.write("    return instance." + field_name +";\n");
             st_java.write("  }\n");
           }
         }
@@ -261,25 +259,23 @@ public class BuildInterface {
           if(methodModel_name.equals("<init>")) {
             st_java.write("\n");
             st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_init\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-            st_java.write("  @CUnsigned\n");
-            st_java.write("  public static long st_" + class_name + "_init(IsolateThread thread)");
+            st_java.write("  public static ObjectHandle st_" + class_name + "_init(IsolateThread thread)");
             method_throws(st_java, class_name, methodModel);
             st_java.write(" {\n");
             st_java.write("    final " + className + " instance = new " + className + "();\n");
-            st_java.write("    final long id = instance_counter++;\n");
-            st_java.write("    instance_map.put(id, instance);\n");
-            st_java.write("    return id;\n");
+            st_java.write("    ObjectHandle handle = ObjectHandles.getGlobal().create(instance);\n");
+            st_java.write("    return handle;\n");
             st_java.write("  }\n");
 
             st_hpp.write("    inline explicit " + class_name + "() noexcept :\n");
-            st_hpp.write("      id{ st_" + class_name + "_init(globalIsolate._thread) } {}\n");
+            st_hpp.write("      handle{ st_" + class_name + "_init(globalIsolate._thread) } {}\n");
             st_hpp.write("\n");
           } else {
             st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-            st_java.write("  public static " + returnTypeDesc.displayName() + " " + methodModel_name + "(IsolateThread thread, final @CUnsigned long id)");
+            st_java.write("  public static " + returnTypeDesc.displayName() + " " + methodModel_name + "(IsolateThread thread, final ObjectHandle handle)");
             method_throws(st_java, class_name, methodModel);
             st_java.write(" {\n");
-            st_java.write("    final " + className + " instance = instance_map.get(id);\n");
+            st_java.write("    final " + className + " instance = ObjectHandles.getGlobal().get(handle);\n");
             if(returnTypeDesc.displayName().equals("void")) {
               st_java.write("    instance." + methodModel_name + "();\n");
             } else {
