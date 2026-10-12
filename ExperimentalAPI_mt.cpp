@@ -4,7 +4,7 @@
 #include <ranges>
 #include <thread>
 
-#include "ExperimentalAPI.hpp"
+#include "ExperimentalAPI_mt.hpp"
 
 using Device = GraalVM_Native_Image::Device;
 

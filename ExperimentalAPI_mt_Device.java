@@ -14,13 +14,14 @@ import com.xilinx.rapidwright.device.Tile;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ExperimentalAPI_Device {
+public class ExperimentalAPI_mt_Device {
+
   private static final ThreadLocal<Long> device_id_counter = new ThreadLocal<Long>() { @Override protected Long initialValue() { return 1L; } };
   private static final ThreadLocal<Long> tile_id_counter = new ThreadLocal<Long>() { @Override protected Long initialValue() { return 1L; } };
   private static final ThreadLocal<Map<Long, Device>> device_map = new ThreadLocal<Map<Long, Device>>() { @Override protected Map<Long, Device> initialValue() { return new HashMap<Long, Device>(); } };
   private static final ThreadLocal<Map<Long, Tile>> tile_map = new ThreadLocal<Map<Long, Tile>>() { @Override protected Map<Long, Tile> initialValue() { return new HashMap<Long, Tile>(); } };
 
-  @CEntryPoint(name = "Device_getDevice")
+  @CEntryPoint(name = "mt_Device_getDevice")
   public static long Device_getDevice(IsolateThread thread, final @CConst CCharPointer deviceName) {
     final String devName = CTypeConversion.toJavaString(deviceName);
     final Device device = Device.getDevice(devName);
@@ -31,12 +32,12 @@ public class ExperimentalAPI_Device {
     return id;
   }
 
-  @CEntryPoint(name = "Device_freeId")
+  @CEntryPoint(name = "mt_Device_freeId")
   public static void Device_freeId(IsolateThread thread, final long id) {
     device_map.get().remove(id);
   }
 
-  @CEntryPoint(name = "Device_getTile")
+  @CEntryPoint(name = "mt_Device_getTile")
   public static long Device_getTile(IsolateThread thread, final long deviceId, final int row, final int column) {
     final Device device = device_map.get().get(deviceId);
     final Tile tile = device.getTile(row, column);
@@ -47,12 +48,12 @@ public class ExperimentalAPI_Device {
     return id;
   }
 
-  @CEntryPoint(name = "Tile_freeId")
+  @CEntryPoint(name = "mt_Tile_freeId")
   public static void Tile_freeId(IsolateThread thread, final long id) {
     tile_map.get().remove(id);
   }
 
-  @CEntryPoint(name = "Tile_getName")
+  @CEntryPoint(name = "mt_Tile_getName")
   public static CCharPointer Tile_getName(IsolateThread thread, final long tileId) {
     final Tile tile = tile_map.get().get(tileId);
     final String name = tile.getName();
@@ -60,12 +61,10 @@ public class ExperimentalAPI_Device {
     final UnsignedWord size = WordFactory.unsigned(bytes.length + 1);
     final CCharPointer buffer = UnmanagedMemory.malloc(size);
     CTypeConversion.toCString(name, buffer, size);
-
-    // return CTypeConversion.toCString(name).get();
     return buffer;
   }
 
-  @CEntryPoint(name = "freeString")
+  @CEntryPoint(name = "mt_freeString")
   public static void freeString(IsolateThread thread, CCharPointer pointer) {
     if (pointer.isNonNull()) {
       UnmanagedMemory.free(pointer);

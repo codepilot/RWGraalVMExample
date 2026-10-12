@@ -31,8 +31,10 @@ set(RAPIDWRIGHT_EXAMPLES_PATH "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/ex
 set(RapidWrightAPI_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/RapidWrightAPI.java")
 file(REMOVE "${RapidWrightAPI_JAVA_PATH}")
 
-set(ExperimentalAPI_Device_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/ExperimentalAPI_Device.java")
-file(REMOVE "${ExperimentalAPI_Device_JAVA_PATH}")
+set(ExperimentalAPI_st_Device_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/ExperimentalAPI_st_Device.java")
+set(ExperimentalAPI_mt_Device_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/ExperimentalAPI_mt_Device.java")
+file(REMOVE "${ExperimentalAPI_st_Device_JAVA_PATH}")
+file(REMOVE "${ExperimentalAPI_mt_Device_JAVA_PATH}")
 
 file(
   COPY_FILE
@@ -65,10 +67,8 @@ file(COPY_FILE
   "${RapidWrightAPI_JAVA_PATH}"
 )
 
-file(COPY_FILE
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Device.java"
-  "${ExperimentalAPI_Device_JAVA_PATH}"
-)
+file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_Device.java" "${ExperimentalAPI_st_Device_JAVA_PATH}")
+file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Device.java" "${ExperimentalAPI_mt_Device_JAVA_PATH}")
 
 execute_process(
   COMMAND ${JAVAC_EXE}
@@ -78,13 +78,8 @@ execute_process(
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
 )
 
-execute_process(
-  COMMAND ${JAVAC_EXE}
-  -cp "${CLASS_PATH}"
-  -d "${RAPIDWRIGHT_PATH}/bin"
-  "${ExperimentalAPI_Device_JAVA_PATH}"
-  WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
-)
+execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "${ExperimentalAPI_st_Device_JAVA_PATH}" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
+execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "${ExperimentalAPI_mt_Device_JAVA_PATH}" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
 
@@ -114,21 +109,43 @@ set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAP
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
 
-add_executable(ExperimentalAPI
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Device.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Isolate.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_String.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Tile.hpp"
+add_executable(ExperimentalAPI_mt
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Device.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Isolate.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_String.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Tile.hpp"
 )
 
-target_compile_features(ExperimentalAPI PUBLIC cxx_std_23)
-target_include_directories(ExperimentalAPI PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_link_directories(ExperimentalAPI PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(ExperimentalAPI PUBLIC librapidwright.lib)
-set_target_properties(ExperimentalAPI PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR};${PATH}")
-set_target_properties(ExperimentalAPI PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
-set_target_properties(ExperimentalAPI PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
+add_executable(ExperimentalAPI_st
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_Device.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_Isolate.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_String.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_Tile.hpp"
+)
 
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ExperimentalAPI)
+target_compile_features(ExperimentalAPI_mt PUBLIC cxx_std_23)
+target_compile_features(ExperimentalAPI_st PUBLIC cxx_std_23)
+
+target_include_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+target_link_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+target_link_libraries(ExperimentalAPI_mt PUBLIC librapidwright.lib)
+target_link_libraries(ExperimentalAPI_st PUBLIC librapidwright.lib)
+
+set_target_properties(ExperimentalAPI_mt PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR};${PATH}")
+set_target_properties(ExperimentalAPI_st PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR};${PATH}")
+
+set_target_properties(ExperimentalAPI_mt PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
+set_target_properties(ExperimentalAPI_st PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
+
+set_target_properties(ExperimentalAPI_mt PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
+set_target_properties(ExperimentalAPI_st PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
+
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ExperimentalAPI_mt)

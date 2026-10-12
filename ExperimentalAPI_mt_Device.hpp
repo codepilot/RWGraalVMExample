@@ -7,6 +7,10 @@
 // This is the header file created by native-image (Graal)
 #include <librapidwright.h>
 
+#define Device_freeId mt_Device_freeId
+#define Device_getTile mt_Device_getTile
+#define Device_getDevice mt_Device_getDevice
+
 namespace GraalVM_Native_Image {
   struct Device {
     int64_t id;

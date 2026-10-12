@@ -7,6 +7,9 @@
 // This is the header file created by native-image (Graal)
 #include <librapidwright.h>
 
+#define Tile_freeId mt_Tile_freeId
+#define Tile_getName mt_Tile_getName
+
 namespace GraalVM_Native_Image {
   struct Tile {
     int64_t id;

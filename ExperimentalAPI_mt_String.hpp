@@ -7,6 +7,8 @@
 // This is the header file created by native-image (Graal)
 #include <librapidwright.h>
 
+#define freeString mt_freeString
+
 namespace GraalVM_Native_Image {
   struct String {
     char* str;
