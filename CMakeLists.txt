@@ -119,14 +119,15 @@ execute_process(
   --verbose
   --emit build-report
   -g
+  --no-fallback
+  -march=x86-64-v3
   -H:+UnlockExperimentalVMOptions
-  -H:+EnableFallbackCompilation
   -H:+SourceLevelDebug
   -H:-DeleteLocalSymbols
   -H:Name=librapidwright
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-  
+ 
 add_executable(RapidWrightExample "${graalvmexample_SOURCE_DIR}/RapidWrightExample.cpp")
 target_compile_features(RapidWrightExample PUBLIC cxx_std_23)
 target_include_directories(RapidWrightExample PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
@@ -149,6 +150,9 @@ add_executable(ExperimentalAPI_st
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Isolate.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_String.hpp"
 )
+
+target_compile_options(ExperimentalAPI_mt INTERFACE /arch:AVX512 /Zc:__cplusplus /MP /GR- /constexpr:steps1073741824 /bigobj)
+target_compile_options(ExperimentalAPI_st INTERFACE /arch:AVX512 /Zc:__cplusplus /MP /GR- /constexpr:steps1073741824 /bigobj)
 
 target_compile_features(ExperimentalAPI_mt PUBLIC cxx_std_23)
 target_compile_features(ExperimentalAPI_st PUBLIC cxx_std_23)
