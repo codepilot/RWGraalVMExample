@@ -31,11 +31,6 @@ set(RAPIDWRIGHT_EXAMPLES_PATH "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/ex
 set(RapidWrightAPI_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/RapidWrightAPI.java")
 file(REMOVE "${RapidWrightAPI_JAVA_PATH}")
 
-set(ExperimentalAPI_st_Device_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/ExperimentalAPI_st_Device.java")
-set(ExperimentalAPI_mt_Device_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/ExperimentalAPI_mt_Device.java")
-file(REMOVE "${ExperimentalAPI_st_Device_JAVA_PATH}")
-file(REMOVE "${ExperimentalAPI_mt_Device_JAVA_PATH}")
-
 file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/build/experimental")
 file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
 file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/bin/com/xilinx/rapidwright/experimental")
@@ -90,9 +85,6 @@ file(COPY_FILE
   "${RapidWrightAPI_JAVA_PATH}"
 )
 
-file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_Device.java" "${ExperimentalAPI_st_Device_JAVA_PATH}")
-file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Device.java" "${ExperimentalAPI_mt_Device_JAVA_PATH}")
-
 execute_process(
   COMMAND ${JAVAC_EXE}
   -cp "${CLASS_PATH}"
@@ -101,8 +93,6 @@ execute_process(
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
 )
 
-execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "${ExperimentalAPI_st_Device_JAVA_PATH}" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
-execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "${ExperimentalAPI_mt_Device_JAVA_PATH}" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "@${rapidwright_SOURCE_DIR}/build/java_file_list.txt" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
@@ -140,15 +130,13 @@ set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_WORKING_DIRECTOR
 add_executable(ExperimentalAPI_mt
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Isolate.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_String.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Isolate.hpp"
 )
 
 add_executable(ExperimentalAPI_st
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Isolate.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_String.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Isolate.hpp"
 )
 
 target_compile_options(ExperimentalAPI_mt PUBLIC /arch:AVX512 /Zc:__cplusplus /MP /GR- /constexpr:steps1073741824 /bigobj)
