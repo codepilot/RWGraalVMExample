@@ -61,20 +61,20 @@ public class BuildInterface {
       if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
         continue;
       }
-      final String className = entry.getName()
+      final String classNameJava = entry.getName()
         .substring(0, entry.getName().length() - 6)
         .replace('/', '.');
 
-      if(!className.startsWith("com.xilinx.rapidwright.")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.gui.")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.examples.")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.placer.handplacer.")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.design.blocks.")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.device.browser.")) continue;
-      if(className.startsWith("com.xilinx.rapidwright.debug")) continue;
-      if(className.equals("com.xilinx.rapidwright.util.a")) continue;
+      if(!classNameJava.startsWith("com.xilinx.rapidwright.")) continue;
+      if(classNameJava.startsWith("com.xilinx.rapidwright.gui.")) continue;
+      if(classNameJava.startsWith("com.xilinx.rapidwright.examples.")) continue;
+      if(classNameJava.startsWith("com.xilinx.rapidwright.placer.handplacer.")) continue;
+      if(classNameJava.startsWith("com.xilinx.rapidwright.design.blocks.")) continue;
+      if(classNameJava.startsWith("com.xilinx.rapidwright.device.browser.")) continue;
+      if(classNameJava.startsWith("com.xilinx.rapidwright.debug")) continue;
+      if(classNameJava.equals("com.xilinx.rapidwright.util.a")) continue;
 
-      if(className.contains("$")) continue;
+      if(classNameJava.contains("$")) continue;
 
       try {
         final InputStream is = jarFile.getInputStream(entry);
@@ -92,16 +92,16 @@ public class BuildInterface {
     }
   }
 
-  public static void method_throws(final FileWriter st_java, final String class_name, final MethodModel methodModel) throws IOException {
+  public static void method_throws(final FileWriter fw_java, final String class_name, final MethodModel methodModel) throws IOException {
     final String methodModel_name = methodModel.methodName().stringValue();
     for(final Attribute<?> attribute: methodModel.attributes()) {
       if(attribute instanceof ExceptionsAttribute) {
         ExceptionsAttribute exceptionsAttribute = (ExceptionsAttribute)attribute;
         // System.out.println("  // " + class_name + "." + methodModel_name + " " + attribute.attributeName().stringValue() + " ");
-        st_java.write(" throws");
+        fw_java.write(" throws");
         for(ClassEntry classEntryException: exceptionsAttribute.exceptions()) {
           ClassDesc classDescException = classEntryException.asSymbol();
-          st_java.write(" " + classDescException.packageName() + "." + classDescException.displayName() + "");
+          fw_java.write(" " + classDescException.packageName() + "." + classDescException.displayName() + "");
         }
       }
     }
@@ -112,85 +112,88 @@ public class BuildInterface {
     jarPath("./build/libs/rapidwright.jar");
 
     final FileWriter java_file_list = new FileWriter("./build/java_file_list.txt");
+    final FileWriter hpp_file_list = new FileWriter("./build/experimental/ExperimentalAPI.hpp");
+    hpp_file_list.write("#pragma once\n\n");
 
     for(final ClassModel classModel: classModels) {
-      final String className = classModel.thisClass().asInternalName().replace('/', '.');
+      final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.');
       final String class_name = classModel.thisClass().asInternalName().replace('/', '_');
 
-      final String str_st_java = "./src/com/xilinx/rapidwright/experimental/st_" + class_name + ".java";
-      final FileWriter st_java = new FileWriter(str_st_java);
+      final String str_fw_java = "./src/com/xilinx/rapidwright/experimental/" + class_name + ".java";
+      final FileWriter fw_java = new FileWriter(str_fw_java);
 
-      final Path str_st_java_path = Paths.get(str_st_java).toAbsolutePath();
+      final Path str_fw_java_path = Paths.get(str_fw_java).toAbsolutePath();
 
-      java_file_list.write(str_st_java_path.normalize().toString() + "\n");
+      java_file_list.write(str_fw_java_path.normalize().toString() + "\n");
 
-      final FileWriter st_hpp = new FileWriter("./build/experimental/st_" + class_name + ".hpp");
+      final FileWriter fw_hpp = new FileWriter("./build/experimental/" + class_name + ".hpp");
+      hpp_file_list.write("#include <" + class_name + ".hpp>\n");
 
-      st_hpp.write("#pragma once\n");
-      st_hpp.write("\n");
+      fw_hpp.write("#pragma once\n");
+      fw_hpp.write("\n");
 
-      st_hpp.write("#include <optional>\n");
-      st_hpp.write("#include <utility>\n");
-      st_hpp.write("#include <cstdlib>\n");
-      st_hpp.write("\n");
+      fw_hpp.write("#include <optional>\n");
+      fw_hpp.write("#include <utility>\n");
+      fw_hpp.write("#include <cstdlib>\n");
+      fw_hpp.write("\n");
 
-      st_hpp.write("// This is the header file created by native-image (Graal)\n");
-      st_hpp.write("#include <librapidwright.h>\n");
-      st_hpp.write("\n");
+      fw_hpp.write("// This is the header file created by native-image (Graal)\n");
+      fw_hpp.write("#include <librapidwright.h>\n");
+      fw_hpp.write("\n");
 
-      st_hpp.write("namespace GraalVM_Native_Image {\n");
+      fw_hpp.write("namespace GraalVM_Native_Image {\n");
 
-      st_hpp.write("  struct " + class_name + " {\n");
-      st_hpp.write("    void* handle;\n");
-      st_hpp.write("    " + class_name + "(const " + class_name + "& other) = delete;\n");
-      st_hpp.write("\n");
+      fw_hpp.write("  struct " + class_name + " {\n");
+      fw_hpp.write("    void* handle;\n");
+      fw_hpp.write("    " + class_name + "(const " + class_name + "& other) = delete;\n");
+      fw_hpp.write("\n");
 
-      st_hpp.write("    " + class_name + "& operator=(const " + class_name + "& other) = delete;\n");
-      st_hpp.write("\n");
+      fw_hpp.write("    " + class_name + "& operator=(const " + class_name + "& other) = delete;\n");
+      fw_hpp.write("\n");
 
-      st_hpp.write("    inline " + class_name + "(" + class_name + "&& other) noexcept :\n");
-      st_hpp.write("      handle{ std::exchange(other.handle, nullptr) } {}\n");
-      st_hpp.write("\n");
+      fw_hpp.write("    inline " + class_name + "(" + class_name + "&& other) noexcept :\n");
+      fw_hpp.write("      handle{ std::exchange(other.handle, nullptr) } {}\n");
+      fw_hpp.write("\n");
 
-      st_hpp.write("    inline " + class_name + "& operator=(" + class_name + "&& other) noexcept {\n");
-      st_hpp.write("      std::swap(*this, other);\n");
-      st_hpp.write("      return *this;\n");
-      st_hpp.write("    }\n");
-      st_hpp.write("\n");
+      fw_hpp.write("    inline " + class_name + "& operator=(" + class_name + "&& other) noexcept {\n");
+      fw_hpp.write("      std::swap(*this, other);\n");
+      fw_hpp.write("      return *this;\n");
+      fw_hpp.write("    }\n");
+      fw_hpp.write("\n");
 
-      st_hpp.write("    inline explicit " + class_name + "(void* handle) noexcept :\n");
-      st_hpp.write("      handle{ handle } {}\n");
-      st_hpp.write("\n");
+      fw_hpp.write("    inline explicit " + class_name + "(void* handle) noexcept :\n");
+      fw_hpp.write("      handle{ handle } {}\n");
+      fw_hpp.write("\n");
 
-      st_hpp.write("    inline ~" + class_name + "() noexcept {\n");
-      st_hpp.write("      if (handle) {\n");
-      st_hpp.write("        st_" + class_name + "_free_instance(globalIsolate._thread, handle);\n");
-      st_hpp.write("      }\n");
-      st_hpp.write("    }\n");
-      st_hpp.write("\n");
+      fw_hpp.write("    inline ~" + class_name + "() noexcept {\n");
+      fw_hpp.write("      if (handle) {\n");
+      fw_hpp.write("        " + class_name + "_free_instance(globalIsolate._thread, handle);\n");
+      fw_hpp.write("      }\n");
+      fw_hpp.write("    }\n");
+      fw_hpp.write("\n");
 
-      st_java.write("package com.xilinx.rapidwright.experimental;\n");
-      st_java.write("\n");
+      fw_java.write("package com.xilinx.rapidwright.experimental;\n");
+      fw_java.write("\n");
 
-      st_java.write("import org.graalvm.nativeimage.ObjectHandle;\n");
-      st_java.write("import org.graalvm.nativeimage.ObjectHandles;\n");
-      st_java.write("import org.graalvm.nativeimage.IsolateThread;\n");
-      st_java.write("import org.graalvm.nativeimage.UnmanagedMemory;\n");
-      st_java.write("import org.graalvm.nativeimage.c.function.CEntryPoint;\n");
-      st_java.write("import org.graalvm.nativeimage.c.type.CCharPointer;\n");
-      st_java.write("import org.graalvm.nativeimage.c.type.CTypeConversion;\n");
-      st_java.write("import org.graalvm.nativeimage.c.type.CConst;\n");
-      st_java.write("import org.graalvm.word.UnsignedWord;\n");
-      st_java.write("import org.graalvm.word.WordFactory;\n");
-      st_java.write("\n");
+      fw_java.write("import org.graalvm.nativeimage.ObjectHandle;\n");
+      fw_java.write("import org.graalvm.nativeimage.ObjectHandles;\n");
+      fw_java.write("import org.graalvm.nativeimage.IsolateThread;\n");
+      fw_java.write("import org.graalvm.nativeimage.UnmanagedMemory;\n");
+      fw_java.write("import org.graalvm.nativeimage.c.function.CEntryPoint;\n");
+      fw_java.write("import org.graalvm.nativeimage.c.type.CCharPointer;\n");
+      fw_java.write("import org.graalvm.nativeimage.c.type.CTypeConversion;\n");
+      fw_java.write("import org.graalvm.nativeimage.c.type.CConst;\n");
+      fw_java.write("import org.graalvm.word.UnsignedWord;\n");
+      fw_java.write("import org.graalvm.word.WordFactory;\n");
+      fw_java.write("\n");
 
-      st_java.write("public class st_" + class_name + " {\n");
-      st_java.write("\n");
+      fw_java.write("public class " + class_name + " {\n");
+      fw_java.write("\n");
 
-      st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_free_instance\")\n");
-      st_java.write("  public static void st_" + class_name + "_free_instance(IsolateThread thread, final ObjectHandle handle) {\n");
-      st_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
-      st_java.write("  }\n");
+      fw_java.write("  @CEntryPoint(name = \"" + class_name + "_free_instance\")\n");
+      fw_java.write("  public static void " + class_name + "_free_instance(IsolateThread thread, final ObjectHandle handle) {\n");
+      fw_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
+      fw_java.write("  }\n");
 
       for(final FieldModel fieldModel: classModel.fields()) {
         final AccessFlags accessFlags = fieldModel.flags();
@@ -203,29 +206,29 @@ public class BuildInterface {
 
         if(accessFlags.has(AccessFlag.STATIC)) {
           if(field_type_class_desc.isPrimitive()) {
-            st_java.write("\n");
-            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_get_static_field_" + field_name + "\")\n");
-            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + class_name + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
-            st_java.write("    return " + className + "." + field_name +";\n");
-            st_java.write("  }\n");
+            fw_java.write("\n");
+            fw_java.write("  @CEntryPoint(name = \"" + class_name + "_get_static_field_" + field_name + "\")\n");
+            fw_java.write("  public static " + field_type_class_desc.displayName() + " " + class_name + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
+            fw_java.write("    return " + classNameJava + "." + field_name +";\n");
+            fw_java.write("  }\n");
 
             if(accessFlags.has(AccessFlag.FINAL)) {
-              st_hpp.write("    inline static const auto " + field_name + "{st_" + class_name + "_get_static_field_" + field_name + "(globalIsolate._thread)};\n");
+              fw_hpp.write("    inline static const auto " + field_name + "{" + class_name + "_get_static_field_" + field_name + "(globalIsolate._thread)};\n");
             } else {
-              st_hpp.write("\n");
-              st_hpp.write("    static auto " + field_name + "() noexcept {\n");
-              st_hpp.write("      return st_" + class_name + "_get_static_field_" + field_name + "(globalIsolate._thread);\n");
-              st_hpp.write("    }\n");
+              fw_hpp.write("\n");
+              fw_hpp.write("    static auto " + field_name + "() noexcept {\n");
+              fw_hpp.write("      return " + class_name + "_get_static_field_" + field_name + "(globalIsolate._thread);\n");
+              fw_hpp.write("    }\n");
             }
           }
         } else {
           if(field_type_class_desc.isPrimitive()) {
-            st_java.write("\n");
-            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_get_field_" + field_name + "\")\n");
-            st_java.write("  public static " + field_type_class_desc.displayName() + " st_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, final ObjectHandle handle) {\n");
-            st_java.write("    final " + className + " instance = ObjectHandles.getGlobal().get(handle);\n");
-            st_java.write("    return instance." + field_name +";\n");
-            st_java.write("  }\n");
+            fw_java.write("\n");
+            fw_java.write("  @CEntryPoint(name = \"" + class_name + "_get_field_" + field_name + "\")\n");
+            fw_java.write("  public static " + field_type_class_desc.displayName() + " " + class_name + "_get_field_" + field_name + "(IsolateThread thread, final ObjectHandle handle) {\n");
+            fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(handle);\n");
+            fw_java.write("    return instance." + field_name +";\n");
+            fw_java.write("  }\n");
           }
         }
       }
@@ -245,43 +248,43 @@ public class BuildInterface {
         }
 
         if(accessFlags.has(AccessFlag.STATIC)) {
-            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-            st_java.write("  public static " + returnTypeDesc.displayName() + " " + methodModel_name + "(IsolateThread thread)");
-            method_throws(st_java, class_name, methodModel);
-            st_java.write(" {\n");
+            fw_java.write("  @CEntryPoint(name = \"" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+            fw_java.write("  public static " + returnTypeDesc.displayName() + " " + methodModel_name + "(IsolateThread thread)");
+            method_throws(fw_java, class_name, methodModel);
+            fw_java.write(" {\n");
             if(returnTypeDesc.displayName().equals("void")) {
-              st_java.write("    " + className + "." + methodModel_name + "();\n");
+              fw_java.write("    " + classNameJava + "." + methodModel_name + "();\n");
             } else {
-              st_java.write("    return " + className + "." + methodModel_name + "();\n");
+              fw_java.write("    return " + classNameJava + "." + methodModel_name + "();\n");
             }
-            st_java.write("  }\n");
+            fw_java.write("  }\n");
         } else {
           if(methodModel_name.equals("<init>")) {
-            st_java.write("\n");
-            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_init\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-            st_java.write("  public static ObjectHandle st_" + class_name + "_init(IsolateThread thread)");
-            method_throws(st_java, class_name, methodModel);
-            st_java.write(" {\n");
-            st_java.write("    final " + className + " instance = new " + className + "();\n");
-            st_java.write("    ObjectHandle handle = ObjectHandles.getGlobal().create(instance);\n");
-            st_java.write("    return handle;\n");
-            st_java.write("  }\n");
+            fw_java.write("\n");
+            fw_java.write("  @CEntryPoint(name = \"" + class_name + "_init\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+            fw_java.write("  public static ObjectHandle " + class_name + "_init(IsolateThread thread)");
+            method_throws(fw_java, class_name, methodModel);
+            fw_java.write(" {\n");
+            fw_java.write("    final " + classNameJava + " instance = new " + classNameJava + "();\n");
+            fw_java.write("    ObjectHandle handle = ObjectHandles.getGlobal().create(instance);\n");
+            fw_java.write("    return handle;\n");
+            fw_java.write("  }\n");
 
-            st_hpp.write("    inline explicit " + class_name + "() noexcept :\n");
-            st_hpp.write("      handle{ st_" + class_name + "_init(globalIsolate._thread) } {}\n");
-            st_hpp.write("\n");
+            fw_hpp.write("    inline explicit " + class_name + "() noexcept :\n");
+            fw_hpp.write("      handle{ " + class_name + "_init(globalIsolate._thread) } {}\n");
+            fw_hpp.write("\n");
           } else {
-            st_java.write("  @CEntryPoint(name = \"st_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-            st_java.write("  public static " + returnTypeDesc.displayName() + " " + methodModel_name + "(IsolateThread thread, final ObjectHandle handle)");
-            method_throws(st_java, class_name, methodModel);
-            st_java.write(" {\n");
-            st_java.write("    final " + className + " instance = ObjectHandles.getGlobal().get(handle);\n");
+            fw_java.write("  @CEntryPoint(name = \"" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+            fw_java.write("  public static " + returnTypeDesc.displayName() + " " + methodModel_name + "(IsolateThread thread, final ObjectHandle handle)");
+            method_throws(fw_java, class_name, methodModel);
+            fw_java.write(" {\n");
+            fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(handle);\n");
             if(returnTypeDesc.displayName().equals("void")) {
-              st_java.write("    instance." + methodModel_name + "();\n");
+              fw_java.write("    instance." + methodModel_name + "();\n");
             } else {
-              st_java.write("    return instance." + methodModel_name + "();\n");
+              fw_java.write("    return instance." + methodModel_name + "();\n");
             }
-            st_java.write("  }\n");
+            fw_java.write("  }\n");
           }
 
           // // System.out.println("      " + class_name + "." + methodModel_name + " " + methodTypeDesc.displayDescriptor());
@@ -305,14 +308,15 @@ public class BuildInterface {
       //     System.out.println("      " + enum_obj);
       //   }
       // }
-      st_java.write("}\n");
-      st_hpp.write("  };\n");
-      st_hpp.write("};\n");
+      fw_java.write("}\n");
+      fw_hpp.write("  };\n");
+      fw_hpp.write("};\n");
 
-      st_java.close();
-      st_hpp.close();
+      fw_java.close();
+      fw_hpp.close();
     }
 
     java_file_list.close();
+    hpp_file_list.close();
   }
 }
