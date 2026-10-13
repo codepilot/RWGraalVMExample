@@ -118,8 +118,11 @@ execute_process(
   --shared
   --verbose
   --emit build-report
+  -g
   -H:+UnlockExperimentalVMOptions
   -H:+EnableFallbackCompilation
+  -H:+SourceLevelDebug
+  -H:-DeleteLocalSymbols
   -H:Name=librapidwright
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -136,19 +139,15 @@ set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_WORKING_DIRECTOR
 add_executable(ExperimentalAPI_mt
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Device.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Isolate.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Isolate.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_String.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Tile.hpp"
 )
 
 add_executable(ExperimentalAPI_st
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_Device.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_Isolate.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_Isolate.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_String.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_Tile.hpp"
 )
 
 target_compile_features(ExperimentalAPI_mt PUBLIC cxx_std_23)

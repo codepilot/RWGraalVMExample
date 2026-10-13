@@ -7,6 +7,6 @@
 // This is the header file created by native-image (Graal)
 #include <librapidwright.h>
 
-#include "ExperimentalAPI_st_Isolate.hpp"
+#include "ExperimentalAPI_Isolate.hpp"
 #include "ExperimentalAPI_st_String.hpp"
 #include <ExperimentalAPI.hpp>

@@ -151,21 +151,21 @@ public class BuildInterface {
       fw_hpp.write("    " + class_name + "& operator=(const " + class_name + "& other) = delete;\n");
       fw_hpp.write("\n");
 
-      fw_hpp.write("    inline " + class_name + "(" + class_name + "&& other) noexcept :\n");
+      fw_hpp.write("    __forceinline " + class_name + "(" + class_name + "&& other) noexcept :\n");
       fw_hpp.write("      handle{ std::exchange(other.handle, nullptr) } {}\n");
       fw_hpp.write("\n");
 
-      fw_hpp.write("    inline " + class_name + "& operator=(" + class_name + "&& other) noexcept {\n");
+      fw_hpp.write("    __forceinline " + class_name + "& operator=(" + class_name + "&& other) noexcept {\n");
       fw_hpp.write("      std::swap(*this, other);\n");
       fw_hpp.write("      return *this;\n");
       fw_hpp.write("    }\n");
       fw_hpp.write("\n");
 
-      fw_hpp.write("    inline explicit " + class_name + "(void* handle) noexcept :\n");
+      fw_hpp.write("    __forceinline explicit " + class_name + "(void* handle) noexcept :\n");
       fw_hpp.write("      handle{ handle } {}\n");
       fw_hpp.write("\n");
 
-      fw_hpp.write("    inline ~" + class_name + "() noexcept {\n");
+      fw_hpp.write("    __forceinline ~" + class_name + "() noexcept {\n");
       fw_hpp.write("      if (handle) {\n");
       fw_hpp.write("        " + class_name + "_free_instance(globalIsolate._thread, handle);\n");
       fw_hpp.write("      }\n");
@@ -216,7 +216,7 @@ public class BuildInterface {
               fw_hpp.write("    inline static const auto " + field_name + "{" + class_name + "_get_static_field_" + field_name + "(globalIsolate._thread)};\n");
             } else {
               fw_hpp.write("\n");
-              fw_hpp.write("    static auto " + field_name + "() noexcept {\n");
+              fw_hpp.write("    __forceinline static auto " + field_name + "() noexcept {\n");
               fw_hpp.write("      return " + class_name + "_get_static_field_" + field_name + "(globalIsolate._thread);\n");
               fw_hpp.write("    }\n");
             }
@@ -270,7 +270,7 @@ public class BuildInterface {
             fw_java.write("    return handle;\n");
             fw_java.write("  }\n");
 
-            fw_hpp.write("    inline explicit " + class_name + "() noexcept :\n");
+            fw_hpp.write("    __forceinline explicit " + class_name + "() noexcept :\n");
             fw_hpp.write("      handle{ " + class_name + "_init(globalIsolate._thread) } {}\n");
             fw_hpp.write("\n");
           } else {
