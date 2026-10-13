@@ -30,7 +30,7 @@ namespace GraalVM_Native_Image {
 
     inline ~String() noexcept {
       if (str) {
-        freeString(globalIsolate._thread, str);
+        freeString(localThread.get(), str);
       }
     }
 

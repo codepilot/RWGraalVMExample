@@ -151,8 +151,8 @@ add_executable(ExperimentalAPI_st
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st_String.hpp"
 )
 
-target_compile_options(ExperimentalAPI_mt INTERFACE /arch:AVX512 /Zc:__cplusplus /MP /GR- /constexpr:steps1073741824 /bigobj)
-target_compile_options(ExperimentalAPI_st INTERFACE /arch:AVX512 /Zc:__cplusplus /MP /GR- /constexpr:steps1073741824 /bigobj)
+target_compile_options(ExperimentalAPI_mt PUBLIC /arch:AVX512 /Zc:__cplusplus /MP /GR- /constexpr:steps1073741824 /bigobj)
+target_compile_options(ExperimentalAPI_st PUBLIC /arch:AVX512 /Zc:__cplusplus /MP /GR- /constexpr:steps1073741824 /bigobj)
 
 target_compile_features(ExperimentalAPI_mt PUBLIC cxx_std_23)
 target_compile_features(ExperimentalAPI_st PUBLIC cxx_std_23)
