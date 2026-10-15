@@ -808,6 +808,20 @@ public class BuildInterface {
       fw_java.write("));\n");
       fw_java.write("  }\n");
     }
+
+    {
+      final String cpp_class_name = (((returnTypeDesc.packageName().length() > 0)?(returnTypeDesc.packageName() + "."):"")+
+      returnTypeDesc.displayName()).replace('.', '_').replace('$', '_');
+      fw_hpp.write("    __forceinline unique_" + cpp_class_name + " " + methodModel_name + "(");
+      write_hpp_arguments(fw_hpp, methodModel);
+      fw_hpp.write(") noexcept {\n");
+      write_hpp_arguments_unboxing(fw_hpp, methodModel);
+      fw_hpp.write("      return unique_" + cpp_class_name + "(std::bit_cast<" + cpp_class_name + " *>(id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get(), this");
+      write_hpp_method_params(fw_hpp, methodModel);
+      fw_hpp.write(")));\n");
+      fw_hpp.write("    }\n");
+      fw_hpp.write("\n");         
+    }
   }
 
   static void write_method(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
