@@ -106,6 +106,7 @@ execute_process(
   --initialize-at-run-time=com.esotericsoftware.kryo.unsafe.UnsafeUtil
   --initialize-at-run-time=com.esotericsoftware.kryo.util.CuckooObjectMap
   --initialize-at-run-time=com.github.luben.zstd
+  --initialize-at-run-time=com.google.ortools.sat.mainJNI
   --initialize-at-run-time=org.python.modules.posix.PosixModule
   --initialize-at-run-time=org.python.modules.Setup
   --initialize-at-run-time=com.xilinx.rapidwright.util.ParallelismTools

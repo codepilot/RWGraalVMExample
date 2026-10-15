@@ -426,6 +426,29 @@ public class BuildInterface {
     fw_java.write("  }\n");
   }
 
+  static void write_static_method_object(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
+    final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
+    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    final AccessFlags methodAccessFlags = methodModel.flags();
+    final String methodModel_name = methodModel.methodName().stringValue();
+    final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
+    final ClassDesc returnTypeDesc = methodTypeDesc.returnType();
+    final AccessFlags classAccessFlags = classModel.flags();
+    final int CEntryPointID = CEntryPointCounter++;
+
+    fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + " */\n");
+    fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + methodModel_name + "(IsolateThread thread");
+    write_java_arguments(fw_java, methodModel);
+    fw_java.write(")");
+    method_throws(fw_java, class_name, methodModel);
+    fw_java.write(" {\n");
+    write_java_arguments_unboxing(fw_java, methodModel);
+    fw_java.write("    return ObjectHandles.getGlobal().create(" + classNameJava + "." + methodModel_name + "(");
+    write_java_method_params(fw_java, methodModel);
+    fw_java.write("));\n");
+    fw_java.write("  }\n");
+  }
+
   static void write_constructor(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
     final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
     final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
@@ -561,13 +584,17 @@ public class BuildInterface {
         fw_java.write("    final " + param_type_str + " param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + ");\n");
       }
       if(param.isArray()) {
-        ClassDesc componentDesc = param.componentType();
-        if(componentDesc.packageName().length() > 0) {
-          final String param_type_str = (componentDesc.packageName() + "." + componentDesc.displayName()).replace('$', '.');
-          fw_java.write("    final " + param_type_str + "[] param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + "); // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
+        final int rank = getRank(param);
+        final ClassDesc baseComponentDesc = getBaseComponentType(param);
+        fw_java.write("    // rank:" + rank + "\n");
+        fw_java.write("    // baseComponentDesc:" + baseComponentDesc.descriptorString() + "\n");
+        fw_java.write("    // baseComponentDesc.descriptorString():" + baseComponentDesc.descriptorString() + "\n");
+        if(baseComponentDesc.packageName().length() > 0) {
+          final String param_type_str = (baseComponentDesc.packageName() + "." + baseComponentDesc.displayName()).replace('$', '.');
+          fw_java.write("    final " + param_type_str + "[]".repeat(rank) + " param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + "); // pkg:" + baseComponentDesc.packageName() + " " + baseComponentDesc + "\n");
         } else {
-          final String param_type_str = (componentDesc.displayName()).replace('$', '.');
-          fw_java.write("    final " + param_type_str + "[] param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + "); // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
+          final String param_type_str = (baseComponentDesc.displayName()).replace('$', '.');
+          fw_java.write("    final " + param_type_str + "[]".repeat(rank) + "  param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + "); // pkg:" + baseComponentDesc.packageName() + " " + baseComponentDesc + "\n");
         }
       }
     }
@@ -700,6 +727,34 @@ public class BuildInterface {
   }
 
   static void write_method_object(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
+    final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
+    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    final AccessFlags methodAccessFlags = methodModel.flags();
+    final String methodModel_name = methodModel.methodName().stringValue();
+    final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
+    final ClassDesc returnTypeDesc = methodTypeDesc.returnType();
+    final AccessFlags classAccessFlags = classModel.flags();
+
+    if(methodAccessFlags.has(AccessFlag.STATIC)) {
+      write_static_method_object(classModel, fw_java, fw_hpp, methodModel);
+      return;
+    }
+
+    final int CEntryPointID = CEntryPointCounter++;
+    {
+      fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + " */\n");
+      fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + methodModel_name + "(IsolateThread thread, final ObjectHandle handle_this");
+      write_java_arguments(fw_java, methodModel);
+      fw_java.write(")");
+      method_throws(fw_java, class_name, methodModel);
+      fw_java.write(" {\n");
+      fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(handle_this);\n");
+      write_java_arguments_unboxing(fw_java, methodModel);
+      fw_java.write("    return ObjectHandles.getGlobal().create(instance." + methodModel_name + "(");
+      write_java_method_params(fw_java, methodModel);
+      fw_java.write("));\n");
+      fw_java.write("  }\n");
+    }
   }
 
   static void write_method(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
