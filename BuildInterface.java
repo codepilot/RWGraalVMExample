@@ -482,9 +482,11 @@ public class BuildInterface {
     }
     final int CEntryPointID = CEntryPointCounter++;
 
+    final String cEntryPoint = "id_constructor_" + CEntryPointID + "_" + class_name;
+
     fw_java.write("\n");
-    fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_init\") /* method: 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + ", class: 0x" + Integer.toHexString(classAccessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_init(IsolateThread thread");
+    fw_java.write("  @CEntryPoint(name = \"" + cEntryPoint + "\") /* method: 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + ", class: 0x" + Integer.toHexString(classAccessFlags.flagsMask()) + " */\n");
+    fw_java.write("  public static ObjectHandle id_constructor_" + CEntryPointID + "_" + class_name + "(IsolateThread thread");
     write_java_arguments(fw_java, methodModel);
     fw_java.write(")");
     method_throws(fw_java, class_name, methodModel);
@@ -497,11 +499,11 @@ public class BuildInterface {
     fw_java.write("    return handle;\n");
     fw_java.write("  }\n");
 
-    fw_hpp.write("    __forceinline static unique_" + class_name + " init(");
+    fw_hpp.write("    __forceinline static unique_" + class_name + " constructor(");
     write_hpp_arguments(fw_hpp, methodModel);
     fw_hpp.write(") noexcept {\n");
     write_hpp_arguments_unboxing(fw_hpp, methodModel);
-    fw_hpp.write("      return unique_" + class_name + "(std::bit_cast<" + class_name + " *>(id_" + CEntryPointID + "_" + class_name + "_init(localThread.get()");
+    fw_hpp.write("      return unique_" + class_name + "(std::bit_cast<" + class_name + " *>(" + cEntryPoint + "(localThread.get()");
     write_hpp_method_params(fw_hpp, methodModel);
     fw_hpp.write(")) );\n");
     fw_hpp.write("    }\n");
@@ -741,6 +743,26 @@ public class BuildInterface {
         fw_java.write(");\n");
       }
       fw_java.write("  }\n");
+    }
+
+    {
+      if(returnTypeDesc.displayName().equals("void")) {
+        fw_hpp.write("    __forceinline void " + methodModel_name + "(");
+      } else{
+        fw_hpp.write("    __forceinline auto " + methodModel_name + "(");
+      }
+      write_hpp_arguments(fw_hpp, methodModel);
+      fw_hpp.write(") noexcept {\n");
+      write_hpp_arguments_unboxing(fw_hpp, methodModel);
+      if(returnTypeDesc.displayName().equals("void")) {
+        fw_hpp.write("      id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get(), this");
+      } else {
+        fw_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get(), this");
+      }
+      write_hpp_method_params(fw_hpp, methodModel);
+      fw_hpp.write(");\n");
+      fw_hpp.write("    }\n");
+      fw_hpp.write("\n");      
     }
 
   }
@@ -1119,6 +1141,7 @@ public class BuildInterface {
     nonloadingClassSet.add("rank_1_char");
     nonloadingClassSet.add("rank_1_java_nio_file_Path");
     nonloadingClassSet.add("rank_1_short");
+    nonloadingClassSet.add("rank_1_com_xilinx_rapidwright_design_Cell");
 
     final FileWriter java_file_list = new FileWriter("./build/java_file_list.txt");
 
