@@ -424,6 +424,25 @@ public class BuildInterface {
       fw_java.write(");\n");
     }
     fw_java.write("  }\n");
+
+    if(returnTypeDesc.displayName().equals("void")) {
+      fw_hpp.write("    __forceinline static void " + methodModel_name + "(");
+    } else{
+      fw_hpp.write("    __forceinline static auto " + methodModel_name + "(");
+    }
+    write_hpp_arguments(fw_hpp, methodModel);
+    fw_hpp.write(") noexcept {\n");
+    write_hpp_arguments_unboxing(fw_hpp, methodModel);
+    if(returnTypeDesc.displayName().equals("void")) {
+      fw_hpp.write("      id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get()");
+    } else {
+      fw_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get()");
+    }
+    write_hpp_method_params(fw_hpp, methodModel);
+    fw_hpp.write(");\n");
+    fw_hpp.write("    }\n");
+    fw_hpp.write("\n");
+
   }
 
   static void write_static_method_object(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
@@ -1095,6 +1114,11 @@ public class BuildInterface {
     nonloadingClassSet.add("rank_1_int");
     nonloadingClassSet.add("rank_1_java_lang_String");
     nonloadingClassSet.add("rank_1_tcl_lang_TclObject");
+    nonloadingClassSet.add("rank_1_com_xilinx_rapidwright_edif_EDIFHierPortInst");
+    nonloadingClassSet.add("rank_1_byte");
+    nonloadingClassSet.add("rank_1_char");
+    nonloadingClassSet.add("rank_1_java_nio_file_Path");
+    nonloadingClassSet.add("rank_1_short");
 
     final FileWriter java_file_list = new FileWriter("./build/java_file_list.txt");
 
