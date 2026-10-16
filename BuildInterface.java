@@ -397,54 +397,6 @@ public class BuildInterface {
     }
   }
 
-  static void write_static_method_primitive(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
-    final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
-    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-    final AccessFlags methodAccessFlags = methodModel.flags();
-    final String methodModel_name = methodModel.methodName().stringValue();
-    final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
-    final ClassDesc returnTypeDesc = methodTypeDesc.returnType();
-    final AccessFlags classAccessFlags = classModel.flags();
-    final int CEntryPointID = CEntryPointCounter++;
-
-    fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static " + returnTypeDesc.displayName() + " id_" + CEntryPointID + "_" + methodModel_name + "(IsolateThread thread");
-    write_java_arguments(fw_java, methodModel);
-    fw_java.write(")");
-    method_throws(fw_java, class_name, methodModel);
-    fw_java.write(" {\n");
-    write_java_arguments_unboxing(fw_java, methodModel);
-    if(returnTypeDesc.displayName().equals("void")) {
-      fw_java.write("    " + classNameJava + "." + methodModel_name + "(");
-      write_java_method_params(fw_java, methodModel);
-      fw_java.write(");\n");
-    } else {
-      fw_java.write("    return " + classNameJava + "." + methodModel_name + "(");
-      write_java_method_params(fw_java, methodModel);
-      fw_java.write(");\n");
-    }
-    fw_java.write("  }\n");
-
-    if(returnTypeDesc.displayName().equals("void")) {
-      fw_hpp.write("    __forceinline static void " + methodModel_name + "(");
-    } else{
-      fw_hpp.write("    __forceinline static auto " + methodModel_name + "(");
-    }
-    write_hpp_arguments(fw_hpp, methodModel);
-    fw_hpp.write(") noexcept {\n");
-    write_hpp_arguments_unboxing(fw_hpp, methodModel);
-    if(returnTypeDesc.displayName().equals("void")) {
-      fw_hpp.write("      id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get()");
-    } else {
-      fw_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get()");
-    }
-    write_hpp_method_params(fw_hpp, methodModel);
-    fw_hpp.write(");\n");
-    fw_hpp.write("    }\n");
-    fw_hpp.write("\n");
-
-  }
-
   static void write_static_method_object(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
     final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
     final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
@@ -725,58 +677,49 @@ public class BuildInterface {
     final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
     final ClassDesc returnTypeDesc = methodTypeDesc.returnType();
     final AccessFlags classAccessFlags = classModel.flags();
+    final int CEntryPointID = CEntryPointCounter++;
 
-    if(methodAccessFlags.has(AccessFlag.STATIC)) {
-      write_static_method_primitive(classModel, fw_java, fw_hpp, methodModel);
-      return;
-    }
     if(methodModel_name.equals("<init>")) {
       write_constructor(classModel, fw_java, fw_hpp, methodModel);
       return;
     }
 
-    final int CEntryPointID = CEntryPointCounter++;
-    {
-      fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "\") /* 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + " */\n");
-      fw_java.write("  public static " + returnTypeDesc.displayName() + " id_" + CEntryPointID + "_" + methodModel_name + "(IsolateThread thread, final ObjectHandle handle_this");
-      write_java_arguments(fw_java, methodModel);
-      fw_java.write(")");
-      method_throws(fw_java, class_name, methodModel);
-      fw_java.write(" {\n");
+    final String cEntryPoint = "id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name;
+    final String java_this_keyword = methodAccessFlags.has(AccessFlag.STATIC)?"":", final ObjectHandle handle_this";
+    final String return_keyword = returnTypeDesc.displayName().equals("void")?"":"return ";
+    final String java_method_base = methodAccessFlags.has(AccessFlag.STATIC)?classNameJava:"instance";
+
+    fw_java.write("  @CEntryPoint(name = \"" + cEntryPoint + "\") /* 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + " */\n");
+    fw_java.write("  public static " + returnTypeDesc.displayName() + " id_" + CEntryPointID + "_" + methodModel_name + "(IsolateThread thread" + java_this_keyword);
+
+    write_java_arguments(fw_java, methodModel);
+    fw_java.write(")");
+    method_throws(fw_java, class_name, methodModel);
+    fw_java.write(" {\n");
+    if(!methodAccessFlags.has(AccessFlag.STATIC)) {
       fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(handle_this);\n");
-      write_java_arguments_unboxing(fw_java, methodModel);
-      if(returnTypeDesc.displayName().equals("void")) {
-        fw_java.write("    instance." + methodModel_name + "(");
-        write_java_method_params(fw_java, methodModel);
-        fw_java.write(");\n");
-      } else {
-        fw_java.write("    return instance." + methodModel_name + "(");
-        write_java_method_params(fw_java, methodModel);
-        fw_java.write(");\n");
-      }
-      fw_java.write("  }\n");
     }
 
-    {
-      if(returnTypeDesc.displayName().equals("void")) {
-        fw_hpp.write("    __forceinline void " + methodModel_name + "(");
-      } else{
-        fw_hpp.write("    __forceinline auto " + methodModel_name + "(");
-      }
-      write_hpp_arguments(fw_hpp, methodModel);
-      fw_hpp.write(") noexcept {\n");
-      write_hpp_arguments_unboxing(fw_hpp, methodModel);
-      if(returnTypeDesc.displayName().equals("void")) {
-        fw_hpp.write("      id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get(), this");
-      } else {
-        fw_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name + "(localThread.get(), this");
-      }
-      write_hpp_method_params(fw_hpp, methodModel);
-      fw_hpp.write(");\n");
-      fw_hpp.write("    }\n");
-      fw_hpp.write("\n");      
-    }
+    write_java_arguments_unboxing(fw_java, methodModel);
 
+    fw_java.write("    " + return_keyword + java_method_base + "." + methodModel_name + "(");
+    write_java_method_params(fw_java, methodModel);
+    fw_java.write(");\n");
+    fw_java.write("  }\n");
+
+    final String cpp_return_type = returnTypeDesc.displayName().equals("void")?"void":"auto";
+    final String cpp_static_keyword = methodAccessFlags.has(AccessFlag.STATIC)?"static ":"";
+    final String cpp_this_keyword = methodAccessFlags.has(AccessFlag.STATIC)?"":", this";
+
+    fw_hpp.write("    __forceinline " + cpp_static_keyword + cpp_return_type + " " + methodModel_name + "(");
+    write_hpp_arguments(fw_hpp, methodModel);
+    fw_hpp.write(") noexcept {\n");
+    write_hpp_arguments_unboxing(fw_hpp, methodModel);
+    fw_hpp.write("      " + return_keyword + cEntryPoint + "(localThread.get()" + cpp_this_keyword);
+    write_hpp_method_params(fw_hpp, methodModel);
+    fw_hpp.write(");\n");
+    fw_hpp.write("    }\n");
+    fw_hpp.write("\n");
   }
 
   static void write_method_object(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
