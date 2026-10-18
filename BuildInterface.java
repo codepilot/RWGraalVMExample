@@ -19,6 +19,7 @@ import java.lang.classfile.Attribute;
 import java.lang.classfile.Attributes;
 import java.lang.classfile.attribute.BootstrapMethodsAttribute;
 import java.lang.classfile.attribute.CodeAttribute;
+import java.lang.classfile.attribute.ConstantValueAttribute;
 import java.lang.classfile.attribute.ExceptionsAttribute;
 import java.lang.classfile.attribute.InnerClassInfo;
 import java.lang.classfile.attribute.InnerClassesAttribute;
@@ -26,8 +27,15 @@ import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
 import java.lang.classfile.attribute.SignatureAttribute;
 import java.lang.classfile.attribute.SourceFileAttribute;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.ConstantValueEntry;
+import java.lang.classfile.constantpool.DoubleEntry;
+import java.lang.classfile.constantpool.FloatEntry;
+import java.lang.classfile.constantpool.IntegerEntry;
+import java.lang.classfile.constantpool.LongEntry;
+import java.lang.classfile.constantpool.StringEntry;
 import java.lang.reflect.AccessFlag;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.Integer;
 
@@ -386,6 +394,64 @@ public class BuildInterface {
     if(field_name.length() <= 1) return;
 
     fw_decl_hpp.write("#undef " + field_name + "\n");
+    for(final Attribute<?> attribute: fieldModel.attributes()) {
+      fw_decl_hpp.write("/* " + attribute + " */\n");
+      if(attribute instanceof ConstantValueAttribute) {
+        final ConstantValueAttribute constantValueAttribute = (ConstantValueAttribute)attribute;
+        final ConstantValueEntry constantValueEntry = constantValueAttribute.constant();
+        final ConstantDesc constantDesc = constantValueEntry.constantValue();
+
+        if(constantValueEntry instanceof DoubleEntry) {
+          final DoubleEntry doubleEntry = (DoubleEntry)constantValueEntry;
+          final double doubleValue = doubleEntry.doubleValue();
+          fw_decl_hpp.write("/* " + accessFlags + " ConstantValueAttribute DoubleEntry " + constantValueAttribute + ": " + doubleValue + " */\n");
+          if(doubleValue == Double.POSITIVE_INFINITY) {
+            fw_decl_hpp.write("    inline static constexpr double " + field_name + "{std::numeric_limits<double>::infinity()};\n\n");
+          } else if(doubleValue == Double.NEGATIVE_INFINITY) {
+            fw_decl_hpp.write("    inline static constexpr double " + field_name + "{-std::numeric_limits<double>::infinity()};\n\n");
+          } else if(Double.isNaN(doubleValue)) {
+            fw_decl_hpp.write("    inline static constexpr double " + field_name + "{std::numeric_limits<double>::quiet_NaN()};\n\n");
+          } else {
+            fw_decl_hpp.write("    inline static constexpr double " + field_name + "{" + doubleValue + "};\n\n");
+          }
+          return;
+        } else if(constantValueEntry instanceof FloatEntry) {
+          final FloatEntry floatEntry = (FloatEntry)constantValueEntry;
+          final float floatValue = floatEntry.floatValue();
+          fw_decl_hpp.write("/* " + accessFlags + " ConstantValueAttribute FloatEntry " + constantValueAttribute + ": " + floatValue + " */\n");
+          if(floatValue == Float.POSITIVE_INFINITY) {
+            fw_decl_hpp.write("    inline static constexpr float " + field_name + "{std::numeric_limits<float>::infinity()};\n\n");
+          } else if(floatValue == Float.NEGATIVE_INFINITY) {
+            fw_decl_hpp.write("    inline static constexpr float " + field_name + "{-std::numeric_limits<float>::infinity()};\n\n");
+          } else if(Float.isNaN(floatValue)) {
+            fw_decl_hpp.write("    inline static constexpr float " + field_name + "{std::numeric_limits<float>::quiet_NaN()};\n\n");
+          } else {
+            fw_decl_hpp.write("    inline static constexpr float " + field_name + "{" + floatValue + "f};\n\n");
+          }
+          return;
+        } else if(constantValueEntry instanceof IntegerEntry) {
+          final IntegerEntry integerEntry = (IntegerEntry)constantValueEntry;
+          final int intValue = integerEntry.intValue();
+          fw_decl_hpp.write("/* " + accessFlags + " ConstantValueAttribute IntegerEntry " + constantValueAttribute + ": " + intValue + " */\n");
+          fw_decl_hpp.write("    inline static constexpr int32_t " + field_name + "{" + intValue + "i32};\n\n");
+          return;
+        } else if(constantValueEntry instanceof LongEntry) {
+          final LongEntry longEntry = (LongEntry)constantValueEntry;
+          final long longValue = longEntry.longValue();
+          fw_decl_hpp.write("/* " + accessFlags + " ConstantValueAttribute LongEntry " + constantValueAttribute + ": " + longValue + " */\n");
+          fw_decl_hpp.write("    inline static constexpr int64_t " + field_name + "{" + longValue + "i64};\n\n");
+          return;
+        } else if(constantValueEntry instanceof StringEntry) {
+          final StringEntry stringEntry = (StringEntry)constantValueEntry;
+          final String stringValue = stringEntry.stringValue();
+          fw_decl_hpp.write("/* " + accessFlags + " ConstantValueAttribute StringEntry " + constantValueAttribute + ": \"" + stringValue + "\" */\n");
+          fw_decl_hpp.write("    inline static constexpr std::string_view " + field_name + "{\"" + stringValue.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t") + "\"};\n\n");
+          return;
+        } else {
+          fw_decl_hpp.write("/* " + accessFlags + " ConstantValueAttribute " + constantValueEntry.typeKind() + " " + constantValueAttribute + ": " + constantDesc + " */\n");
+        }
+      }
+    }
 
     final String field_type_name = fieldModel.fieldType().stringValue();
     final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
@@ -690,13 +756,6 @@ public class BuildInterface {
   static void write_java_arguments_unboxing(final FileWriter fw_java, final MethodModel methodModel) throws IOException {
     final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
     int param_counter = 0;
-    for(final Attribute<?> attribute: methodModel.attributes()) {
-      fw_java.write("/* " + attribute + " */\n");
-      if(attribute instanceof SignatureAttribute) {
-        SignatureAttribute signatureAttribute = (SignatureAttribute)attribute;
-        fw_java.write("/* SignatureAttribute " + signatureAttribute + " */");
-      }
-    }
 
     for(ClassDesc param: methodTypeDesc.parameterArray()) {
       final int param_id = param_counter++;
@@ -729,13 +788,6 @@ public class BuildInterface {
   static void write_hpp_arguments_unboxing(final FileWriter fw, final MethodModel methodModel) throws IOException {
     final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
     int param_counter = 0;
-    for(final Attribute<?> attribute: methodModel.attributes()) {
-      fw.write("/* " + attribute + " */\n");
-      if(attribute instanceof SignatureAttribute) {
-        SignatureAttribute signatureAttribute = (SignatureAttribute)attribute;
-        fw.write("/* SignatureAttribute " + signatureAttribute + " */");
-      }
-    }
 
     for(ClassDesc param: methodTypeDesc.parameterArray()) {
       final int param_id = param_counter++;
@@ -926,6 +978,11 @@ public class BuildInterface {
     write_hpp_arguments(fw_impl_hpp, methodModel);
 
     fw_decl_hpp.write(") noexcept;\n");
+
+    for(final Attribute<?> attribute: methodModel.attributes()) {
+      fw_decl_hpp.write("/* " + attribute + " */\n");
+    }
+
     fw_impl_hpp.write(") noexcept {\n");
     write_hpp_arguments_unboxing(fw_impl_hpp, methodModel);
     if(cpp_class_name.equals("java_lang_String")) {

@@ -11,9 +11,9 @@ int main(int argc, char **argv) {
   using Device = com::xilinx::rapidwright::device::Device;
   using TileColumnPattern = com::xilinx::rapidwright::device::helper::TileColumnPattern;
 
-  std::println("Device::RAPIDWRIGHT_YEAR_VERSION: {}", static_cast<int>(Device::RAPIDWRIGHT_YEAR_VERSION));
-  std::println("Device::RAPIDWRIGHT_QUARTER_VERSION: {}", static_cast<int>(Device::RAPIDWRIGHT_QUARTER_VERSION));
-  std::println("Device::RAPIDWRIGHT_MINOR_VERSION: {}", static_cast<int>(Device::RAPIDWRIGHT_MINOR_VERSION));
+  std::println("Device::RAPIDWRIGHT_YEAR_VERSION: {}", Device::RAPIDWRIGHT_YEAR_VERSION);
+  std::println("Device::RAPIDWRIGHT_QUARTER_VERSION: {}", Device::RAPIDWRIGHT_QUARTER_VERSION);
+  std::println("Device::RAPIDWRIGHT_MINOR_VERSION: {}", Device::RAPIDWRIGHT_MINOR_VERSION);
   std::println("Device::QUIET_MESSAGE: {}", static_cast<int>(Device::QUIET_MESSAGE));
   std::println("TileColumnPattern::MAX_PATTERN_LENGTH: {}", static_cast<int>(TileColumnPattern::MAX_PATTERN_LENGTH));
   TileColumnPattern::MAX_PATTERN_LENGTH = TileColumnPattern::MAX_PATTERN_LENGTH + 1;
