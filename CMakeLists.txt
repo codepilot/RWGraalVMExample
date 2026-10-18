@@ -116,6 +116,24 @@ execute_process(
   --initialize-at-run-time=org.python.modules.posix.PosixModule
   --initialize-at-run-time=org.python.modules.Setup
   --initialize-at-run-time=com.xilinx.rapidwright.util.ParallelismTools
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.FileFilters
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.GUIModuleInst
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.GUIShapeState
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.HierCellInstTreeWidgetItem
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.HMTile
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.ModuleInstanceScene
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.NetlistBrowser
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.NetlistTreeWidget
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.NumberedHighlightedTile
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.PBlockScene
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.SchematicScene
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.SchematicView
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.TileColors
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.TileScene
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.TileView
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.UiPBlock
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.UiTools
+  --initialize-at-run-time=com.xilinx.rapidwright.gui.WidgetMaker
   --enable-native-access=ALL-UNNAMED
   --shared
   --emit build-report

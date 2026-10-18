@@ -215,8 +215,27 @@ public class BuildInterface {
     if(classDesc.packageName().length() == 0) return;
 
     final String classNameJava = classDesc.packageName() + "." + classDesc.displayName();
+    final Set<AccessFlag> accessFlagSet = accessFlags.flags();
 
-    classAccessFlagsMap.put(classDesc, accessFlags.flags());
+    classAccessFlagsMap.compute(classDesc, (final ClassDesc k, final Set<AccessFlag> oldValue)-> {
+      final Set<AccessFlag> newValue = accessFlagSet;
+      if(oldValue == null) return newValue;
+
+      final Set<AccessFlag> mergedValue = new HashSet<AccessFlag>(newValue);
+
+      if(!oldValue.contains(AccessFlag.PUBLIC)) mergedValue.remove(AccessFlag.PUBLIC);
+      if(oldValue.contains(AccessFlag.PROTECTED)) mergedValue.add(AccessFlag.PROTECTED);
+      if(oldValue.contains(AccessFlag.SUPER)) mergedValue.add(AccessFlag.SUPER);
+      if(oldValue.contains(AccessFlag.STATIC)) mergedValue.add(AccessFlag.STATIC);
+
+      System.out.println(
+        "classAccessFlagsMap.compute: " + k.packageName() + "." + k.displayName() +
+        ", oldValue: " + oldValue + 
+        ", newValue: " + newValue +
+        ", mergedValue: " + mergedValue
+      );
+      return mergedValue;
+    });
 
     for(final InnerClassesAttribute innerClasses: classModel.findAttributes(Attributes.innerClasses())) {
       for(final InnerClassInfo innerClassInfo: innerClasses.classes()) {
@@ -225,23 +244,28 @@ public class BuildInterface {
         final ClassDesc innerClassDesc = innerClassEntry.asSymbol();
         final String innerClassJavaName = innerClassEntry.asInternalName().replace('/', '.').replace('$', '.');
 
-        classAccessFlagsMap.putIfAbsent(innerClassDesc, innerClassInfo.flags());
-        // final boolean printBool = innerClassJavaName.equals("com.xilinx.rapidwright.rwroute.CUFRpartitionTree.PartitionBBox");
-        final boolean printBool = innerClassInfo.has(AccessFlag.STATIC);
-        // if(printBool) {
-        //   System.out.println(
-        //     "innerClassInfoFlags: 0x" + Integer.toHexString(innerClassInfo.flagsMask()) +
-        //     ", " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()) +
-        //     " [-] innerName: " + innerClassInfo.innerName() +
-        //     ", innerClass: " + innerClassEntry +
-        //     ", innerClassJavaName: " + innerClassJavaName +
-        //     ", outerClassEntry: " + outerClassEntry
-        //   );
-        // }
+        final Set<AccessFlag> innerClassAccessFlags = innerClassInfo.flags();
 
-        // if(classNameJava.equals(innerClassJavaName)) {
-        //   return innerClassInfo.flags();
-        // }
+        classAccessFlagsMap.compute(innerClassDesc, (final ClassDesc k, final Set<AccessFlag> oldValue)-> {
+          final Set<AccessFlag> newValue = innerClassAccessFlags;
+          if(oldValue == null) return newValue;
+
+          final Set<AccessFlag> mergedValue = new HashSet<AccessFlag>(newValue);
+
+          if(!oldValue.contains(AccessFlag.PUBLIC)) mergedValue.remove(AccessFlag.PUBLIC);
+          if(oldValue.contains(AccessFlag.PROTECTED)) mergedValue.add(AccessFlag.PROTECTED);
+          if(oldValue.contains(AccessFlag.SUPER)) mergedValue.add(AccessFlag.SUPER);
+          if(oldValue.contains(AccessFlag.STATIC)) mergedValue.add(AccessFlag.STATIC);
+          
+          System.out.println(
+            "classAccessFlagsMap.compute: " + k.packageName() + "." + k.displayName() +
+            ", oldValue: " + oldValue + 
+            ", newValue: " + newValue +
+            ", mergedValue: " + mergedValue
+          );
+          return mergedValue;
+        });
+
       }
     }      
 
@@ -251,68 +275,8 @@ public class BuildInterface {
         return;
       }
 
-      if(classNameJava.startsWith("com.xilinx.rapidwright.rwroute.")) {
-        // System.out.println("startsWith 'com.xilinx.rapidwright.rwroute.' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.gui.")) {
-        // System.out.println("startsWith 'com.xilinx.rapidwright.gui.' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.examples.")) {
-        // System.out.println("startsWith 'com.xilinx.rapidwright.examples.'" + classNameJava);
-        return;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.placer.handplacer.")) {
-        // System.out.println("startsWith 'com.xilinx.rapidwright.placer.handplacer.' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.util.ParallelismTools")) {
-        // System.out.println("equals 'com.xilinx.rapidwright.util.ParallelismTools' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.MainEntrypoint")) {
-        // System.out.println("equals 'com.xilinx.rapidwright.MainEntrypoint' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.StandaloneEntrypoint")) {
-        // System.out.println("equals 'com.xilinx.rapidwright.StandaloneEntrypoint' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.GUIPBlock")) {
-        // System.out.println("equals 'com.xilinx.rapidwright.design.blocks.GUIPBlock' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.PBlockGenerator")) {
-        // System.out.println("equals 'com.xilinx.rapidwright.design.blocks.PBlockGenerator' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.BlockView")) {
-        // System.out.println("equals 'com.xilinx.rapidwright.design.blocks.BlockView' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.device.browser.")) {
-        // System.out.println("startsWith 'com.xilinx.rapidwright.device.browser.' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.debug.")) {
-        // System.out.println("startsWith 'com.xilinx.rapidwright.debug.' " + classNameJava);
-        return;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.interchange.")) {
-        // System.out.println("startsWith 'com.xilinx.rapidwright.interchange.' " + classNameJava);
+      if(classNameJava.equals("com.xilinx.rapidwright.examples.RapidWrightAPI")) {
+        System.out.println("equals 'com.xilinx.rapidwright.examples.RapidWrightAPI'");
         return;
       }
     }
@@ -1659,8 +1623,8 @@ public class BuildInterface {
     hpp_impl_list.close();
     hpp_frmt_list.close();
 
-    // for(final Entry<ClassDesc, Set<AccessFlag>> entry: classAccessFlagsMap.entrySet()) {
-    //   System.out.println(entry);
-    // }
+    for(final Entry<ClassDesc, Set<AccessFlag>> entry: classAccessFlagsMap.entrySet()) {
+      System.out.println(entry.getKey().packageName() + "." + entry.getKey().displayName() + " " + entry.getValue());
+    }
   }
 }
