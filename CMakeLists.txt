@@ -61,9 +61,11 @@ file(COPY_FILE
   "${REFLECTION_CONFIG_DIR}/reachability-metadata.json"
 )
 
+message("EXECUTING FileToolsUpdateAllDataFiles.java...")
 execute_process(COMMAND ${JAVA_EXE}
   "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
   -cp "${CLASS_PATH}"
+  --enable-native-access=ALL-UNNAMED
   "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
   -d "${RAPIDWRIGHT_PATH}"
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
@@ -72,6 +74,7 @@ execute_process(COMMAND ${JAVA_EXE}
 file(MAKE_DIRECTORY "${rapidwright_SOURCE_DIR}/build/experimental")
 file(MAKE_DIRECTORY "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
 
+message("EXECUTING BuildInterface.java...")
 execute_process(COMMAND ${JAVA_EXE}
   "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
   -cp "${CLASS_PATH}"
@@ -85,6 +88,7 @@ file(COPY_FILE
   "${RapidWrightAPI_JAVA_PATH}"
 )
 
+message("COMPILING RapidWrightAPI.java...")
 execute_process(
   COMMAND ${JAVAC_EXE}
   -cp "${CLASS_PATH}"
@@ -93,10 +97,12 @@ execute_process(
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
 )
 
+message("COMPILING @java_file_list.txt...")
 execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "@${rapidwright_SOURCE_DIR}/build/java_file_list.txt" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
 
+message("EXECUTING NATIVE-IMAGE...")
 execute_process(
   COMMAND "${native_image_cmd}"
   --exact-reachability-metadata
@@ -110,20 +116,23 @@ execute_process(
   --initialize-at-run-time=org.python.modules.posix.PosixModule
   --initialize-at-run-time=org.python.modules.Setup
   --initialize-at-run-time=com.xilinx.rapidwright.util.ParallelismTools
+  --enable-native-access=ALL-UNNAMED
   --shared
-  --verbose
   --emit build-report
   -g
+  -Ob
+  --silent
+  --future-defaults=all
   --gc=G1
-  --no-fallback
   -march=x86-64-v3
   -H:+UnlockExperimentalVMOptions
   -H:+SourceLevelDebug
   -H:-DeleteLocalSymbols
+  -H:+AddAllCharsets
   -H:Name=librapidwright
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
- 
+
 add_executable(RapidWrightExample "${graalvmexample_SOURCE_DIR}/RapidWrightExample.cpp")
 target_compile_features(RapidWrightExample PUBLIC cxx_std_23)
 target_include_directories(RapidWrightExample PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

@@ -389,13 +389,20 @@ public class BuildInterface {
 
     final String field_type_name = fieldModel.fieldType().stringValue();
     final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
-    final int CEntryPointID = CEntryPointCounter++;
+    final int CEntryPointID_getter = CEntryPointCounter++;
+    final int CEntryPointID_setter = CEntryPointCounter++;
     final String cpp_static_keyword = accessFlags.has(AccessFlag.STATIC)?"inline static ":"";
     final String static_descriptor = accessFlags.has(AccessFlag.STATIC)?"static_":"";
     final String java_class_name = ((field_type_class_desc.packageName().length()>0)?(field_type_class_desc.packageName() + "."):"") + field_type_class_desc.displayName();
     final String cpp_class_name = java_class_name.replace(".", "_");
     final String java_instance_arg = accessFlags.has(AccessFlag.STATIC)?"":", @CTypedef(name = \"OBJECT_HANDLE_" + class_name + "\") final ObjectHandle instance_handle";
     final String java_unbox_instance = accessFlags.has(AccessFlag.STATIC)?"":"    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n";
+    final String java_unbox_setter_value = field_type_class_desc.isPrimitive()?"setter_value":"ObjectHandles.getGlobal().get(setter_value)";
+    final String cpp_unbox_setter_value = field_type_class_desc.isPrimitive()?"val":"val.ObjectHandle";
+    final String java_box_return_prefix = field_type_class_desc.isPrimitive()?"":"ObjectHandles.getGlobal().create(";
+    final String java_box_return_postfix = field_type_class_desc.isPrimitive()?"":")";
+    String cpp_box_return_prefix = "";
+    String cpp_box_return_postfix = "";
     final String java_field_base = accessFlags.has(AccessFlag.STATIC)?classNameJava:"instance";
     final String cpp_getter_specifier = accessFlags.has(AccessFlag.STATIC)?"noexcept":"const noexcept";
     final String cpp_func_static = accessFlags.has(AccessFlag.STATIC)?"static ":"";
@@ -409,82 +416,116 @@ public class BuildInterface {
 
     final String cpp_putter = accessFlags.has(AccessFlag.FINAL)?"":", put = put_" + field_name;
 
-    if(field_type_class_desc.isPrimitive()) {
+    String java_get_ret = field_type_class_desc.displayName();
+    String java_get_ret_CTypedef = "";
+    if(field_type_class_desc.isClassOrInterface()) {
+      java_get_ret = "ObjectHandle";
+      java_get_ret_CTypedef = "  @CTypedef(name = \"OBJECT_HANDLE_" + cpp_class_name + "\")\n";
+      cpp_type = "::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName();
+      cpp_box_return_prefix = cpp_type + "(";
+      cpp_box_return_postfix = ")";
+    }
+
+    if(field_type_class_desc.isArray()) {
+      final int rank = getRank(field_type_class_desc);
+      final ClassDesc base = getBaseComponentType(field_type_class_desc);
+
+      java_get_ret = "ObjectHandle";
+      if(base.packageName().length() > 0) {
+        final String base_class_name = base.packageName().replace(".", "_") + "_" + base.displayName().replace(".", "_");
+        java_get_ret_CTypedef = "  @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + base_class_name + "\")\n";
+        cpp_type = "::" + base.packageName().replace(".", "::") + "::RANK_" + rank + "_" + base.displayName();
+      } else {
+        final String base_class_name = base.displayName().replace(".", "_");
+        java_get_ret_CTypedef = "  @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" +  base_class_name + "\")\n";
+        cpp_type = "::RANK_" + rank + "_" + base.displayName();
+      }
+      cpp_box_return_prefix = cpp_type + "(";
+      cpp_box_return_postfix = ")";
+    }
+
+    fw_java.write("\n");
+    fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID_getter + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+    fw_java.write(java_get_ret_CTypedef);
+    fw_java.write("  public static " + java_get_ret + " id_" + CEntryPointID_getter + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(IsolateThread thread" + java_instance_arg + ") {\n");
+    fw_java.write(java_unbox_instance);
+    fw_java.write("    final " + java_get_ret + " retval = " + java_box_return_prefix + java_field_base + "." + field_name + java_box_return_postfix +";\n");
+    fw_java.write("    return retval;\n");
+    fw_java.write("  }\n\n");
+
+    if(!accessFlags.has(AccessFlag.FINAL)) {
       fw_java.write("\n");
-      fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-      fw_java.write("  public static " + field_type_class_desc.displayName() + " id_" + CEntryPointID + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(IsolateThread thread" + java_instance_arg + ") {\n");
+      fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID_setter + "_" + class_name + "_set_" + static_descriptor + "field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+      fw_java.write("  public static void id_" + CEntryPointID_setter + "_" + class_name + "_set_" + static_descriptor + "field_" + field_name + "(IsolateThread thread" + java_instance_arg + ", " + java_get_ret_CTypedef + " " + java_get_ret + " setter_value) {\n");
       fw_java.write(java_unbox_instance);
-      fw_java.write("    return " + java_field_base + "." + field_name +";\n");
-      fw_java.write("  }\n");
+      fw_java.write("    " + java_field_base + "." + field_name + " = " + java_unbox_setter_value + ";\n");
+      fw_java.write("  }\n\n");
+    }
+
+    if(accessFlags.has(AccessFlag.STATIC)) {
+      fw_decl_hpp.write("\n");
+      fw_decl_hpp.write("    struct Property_" + CEntryPointID_getter + "_" + field_name + " {\n");
 
       fw_decl_hpp.write("\n");
-      fw_decl_hpp.write("    struct Property_" + CEntryPointID + "_" + field_name + " {\n");
+      fw_decl_hpp.write("      /* static getter " + cpp_type + " " + field_name + "*/\n");
       fw_decl_hpp.write("      __forceinline operator " + cpp_type + "() const noexcept;\n");
 
-      fw_impl_hpp.write("    __forceinline " + classDesc.displayName() + "::Property_" + CEntryPointID + "_" + field_name + "::operator " + cpp_type + "() const noexcept {\n");
-      fw_impl_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(localThread.get()" + cpp_this_arg + ");\n");
-      fw_impl_hpp.write("    }\n");
+      fw_impl_hpp.write("  __forceinline " + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + "::operator " + cpp_type + "() const noexcept {\n");
+      fw_impl_hpp.write("    return " + cpp_box_return_prefix + "id_" + CEntryPointID_getter + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(localThread.get()" + cpp_this_arg + ")" + cpp_box_return_postfix + ";\n");
+      fw_impl_hpp.write("  }\n\n");
 
       if(!accessFlags.has(AccessFlag.FINAL)) {
-        fw_decl_hpp.write("      __forceinline Property_" + CEntryPointID + "_" + field_name + "& operator=(const " + cpp_type + "& val) const noexcept;\n");
+        fw_decl_hpp.write("\n");
+        fw_decl_hpp.write("  /* static setter " + cpp_type + " " + field_name + "*/\n");
+        fw_decl_hpp.write("  __forceinline Property_" + CEntryPointID_getter + "_" + field_name + "& operator=(const " + cpp_type + "& val) noexcept;\n");
+        fw_impl_hpp.write("  __forceinline " + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + "& " + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + "::operator=(const " + cpp_type + "& val) noexcept {\n");
+        fw_impl_hpp.write("    id_" + CEntryPointID_setter + "_" + class_name + "_set_" + static_descriptor + "field_" + field_name + "(localThread.get()" + cpp_this_arg + ", " + cpp_unbox_setter_value + ");\n");
+        fw_impl_hpp.write("    return *this;\n");
+        fw_impl_hpp.write("  }\n\n");
       }
+
       fw_decl_hpp.write("    };\n\n");
-      if(accessFlags.has(AccessFlag.STATIC)) {
-        fw_decl_hpp.write("    static Property_" + CEntryPointID + "_" + field_name + " " + field_name + ";\n\n");
-        fw_impl_hpp.write("    " + classDesc.displayName() + "::Property_" + CEntryPointID + "_" + field_name + " " + classDesc.displayName() + "::" + field_name + "{};\n");
-      } else {
-        fw_decl_hpp.write("    [[no_unique_address]] Property_" + CEntryPointID + "_" + field_name + " " + field_name + ";\n\n");
-      }
+      fw_decl_hpp.write("    static Property_" + CEntryPointID_getter + "_" + field_name + " " + field_name + ";\n\n");
+      fw_impl_hpp.write("  " + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + " " + classDesc.displayName() + "::" + field_name + "{};\n\n");
+
+    } else {
+      // fw_decl_hpp.write("    [[no_unique_address]] Property_" + CEntryPointID + "_" + field_name + " " + field_name + ";\n\n");
 
     }
-    if(field_type_class_desc.isClassOrInterface()) {
-      if(accessFlags.has(AccessFlag.STATIC)) {
-        fw_java.write("\n");
-        fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-        fw_java.write("  @CTypedef(name = \"OBJECT_HANDLE_" + cpp_class_name + "\")\n");
-        fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
-        fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(" + classNameJava + "." + field_name +");\n");
-        fw_java.write("    return handle;\n");
-        fw_java.write("  }\n");
 
-        if(accessFlags.has(AccessFlag.FINAL)) {
-          // fw_impl_hpp.write("    inline static const unique_" + cpp_class_name + " " + field_name + "{std::bit_cast<" + cpp_class_name + " *>(" + class_name + "_get_static_field_" + field_name + "(localThread.get()))};\n");
-          fw_decl_hpp.write("    __forceinline static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " get_" + field_name + "() noexcept;\n");
-          fw_decl_hpp.write("    static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + field_name + ";\n");
+    // if(field_type_class_desc.isClassOrInterface()) {
+    //   if(accessFlags.has(AccessFlag.STATIC)) {
 
-          fw_impl_hpp.write("\n");
-          fw_impl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::get_" + field_name + "() noexcept {\n");
-          fw_impl_hpp.write("      if constexpr (is_debug) {\n");
-          fw_impl_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
-          fw_impl_hpp.write("      }\n");
-          fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
-          fw_impl_hpp.write("    }\n");
-          fw_impl_hpp.write("    ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::" + field_name + "{get_" + field_name + "()};\n");
-        } else {
-          fw_impl_hpp.write("\n");
-          fw_impl_hpp.write("    __forceinline static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " get_" + field_name + "() noexcept {\n");
-          fw_impl_hpp.write("      if constexpr (is_debug) {\n");
-          fw_impl_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
-          fw_impl_hpp.write("      }\n");
-          fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
-          fw_impl_hpp.write("    }\n");
-        }
-      } else {
-        fw_java.write("\n");
-        fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-        fw_java.write("  @CTypedef(name = \"OBJECT_HANDLE_" + cpp_class_name + "\")\n");
-        fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(IsolateThread thread" + java_instance_arg + ") {\n");
-        fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n");
-        fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(instance." + field_name +");\n");
-        fw_java.write("    return handle;\n");
-        fw_java.write("  }\n");
+    //     if(accessFlags.has(AccessFlag.FINAL)) {
+    //       // fw_impl_hpp.write("    inline static const unique_" + cpp_class_name + " " + field_name + "{std::bit_cast<" + cpp_class_name + " *>(" + class_name + "_get_static_field_" + field_name + "(localThread.get()))};\n");
+    //       fw_decl_hpp.write("    __forceinline static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " get_" + field_name + "() noexcept;\n");
+    //       fw_decl_hpp.write("    static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + field_name + ";\n");
 
-        fw_decl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + "get_" + field_name + "() const noexcept;\n");
-        fw_impl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::get_" + field_name + "() const noexcept {\n");
-        fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(localThread.get(), ObjectHandle));\n");
-        fw_impl_hpp.write("    }\n");
-      }
-    }
+    //       fw_impl_hpp.write("\n");
+    //       fw_impl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::get_" + field_name + "() noexcept {\n");
+    //       fw_impl_hpp.write("      if constexpr (is_debug) {\n");
+    //       fw_impl_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
+    //       fw_impl_hpp.write("      }\n");
+    //       fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
+    //       fw_impl_hpp.write("    }\n");
+    //       fw_impl_hpp.write("    ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::" + field_name + "{get_" + field_name + "()};\n");
+    //     } else {
+    //       fw_impl_hpp.write("\n");
+    //       fw_impl_hpp.write("    __forceinline static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " get_" + field_name + "() noexcept {\n");
+    //       fw_impl_hpp.write("      if constexpr (is_debug) {\n");
+    //       fw_impl_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
+    //       fw_impl_hpp.write("      }\n");
+    //       fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
+    //       fw_impl_hpp.write("    }\n");
+    //     }
+    //   } else {
+
+    //     fw_decl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + "get_" + field_name + "() const noexcept;\n");
+    //     fw_impl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::get_" + field_name + "() const noexcept {\n");
+    //     fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(localThread.get(), ObjectHandle));\n");
+    //     fw_impl_hpp.write("    }\n");
+    //   }
+    // }
 
     // if(!accessFlags.has(AccessFlag.STATIC)) {      
     //   fw_impl_hpp.write("__declspec(property(get = get_" + static_descriptor+ field_name + cpp_putter + ")) " + cpp_static_keyword + " " + cpp_type + " " + field_name + ";\n");
@@ -1213,6 +1254,7 @@ public class BuildInterface {
     fw_java.write("\n");
 
     fw_java.write("@CHeader(" + class_name + ".class)\n");
+    fw_java.write("@SuppressWarnings({\"preview\",\"deprecation\",\"removal\"})\n");
     fw_java.write("public class " + class_name + " implements CHeader.Header {\n");
     fw_java.write("  @Override\n");
     fw_java.write("  public String name() {\n");
@@ -1233,11 +1275,34 @@ public class BuildInterface {
     fw_java.write("\n");
 
     if(classModel != null) {
+      final SortedSet<String> usedNames = new TreeSet<>();
       for(final FieldModel fieldModel: classModel.fields()) {
+        if(fieldModel.fieldName().stringValue().length() <= 1) continue;
+
+        final AccessFlags accessFlags = fieldModel.flags();
+        if(!accessFlags.has(AccessFlag.PUBLIC)) continue;
+        if(accessFlags.has(AccessFlag.PRIVATE)) continue;
+
+        final String field_key = classNameJava + (accessFlags.has(AccessFlag.STATIC)?"::":".") + fieldModel.fieldName().stringValue();
+        usedNames.add(field_key);
+
         write_field(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, fieldModel);
       }
   
       for(final MethodModel methodModel: classModel.methods()) {
+        if(methodModel.methodName().stringValue().length() <= 1) continue;
+
+        final AccessFlags accessFlags = methodModel.flags();
+
+        if(!accessFlags.has(AccessFlag.PUBLIC)) continue;
+        if(accessFlags.has(AccessFlag.PRIVATE)) continue;
+        if(accessFlags.has(AccessFlag.SYNTHETIC)) continue;
+
+        final String method_key = classNameJava + (accessFlags.has(AccessFlag.STATIC)?"::":".") + methodModel.methodName().stringValue();
+        if(usedNames.contains(method_key)) {
+          System.out.println("skipping method " + method_key);
+          continue;
+        }
         write_method(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, methodModel);
       }
     }

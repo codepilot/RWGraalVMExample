@@ -3,6 +3,7 @@ package com.xilinx.rapidwright.examples;
 import com.xilinx.rapidwright.util.FileTools;
 import com.xilinx.rapidwright.device.Device;
 
+@SuppressWarnings({"preview","deprecation","removal"})
 public class FileToolsUpdateAllDataFiles {
   public static void main(String[] args) {
     FileTools.updateAllDataFiles();
