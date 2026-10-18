@@ -373,9 +373,10 @@ public class BuildInterface {
     }
   }
 
-  static void write_field(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_def_hpp, final FileWriter fw_impl_hpp, final FieldModel fieldModel) throws IOException {
+  static void write_field(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_decl_hpp, final FileWriter fw_impl_hpp, final FieldModel fieldModel) throws IOException {
     final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
-    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    final String class_name = classModel.thisClass().asInternalName().replace('/', '_');
+    final ClassDesc classDesc = classModel.thisClass().asSymbol();
 
     final AccessFlags accessFlags = fieldModel.flags();
     if(!accessFlags.has(AccessFlag.PUBLIC)) return;
@@ -384,25 +385,26 @@ public class BuildInterface {
     final String field_name = fieldModel.fieldName().stringValue();
     if(field_name.length() <= 1) return;
 
-    fw_def_hpp.write("#undef " + field_name + "\n");
+    fw_decl_hpp.write("#undef " + field_name + "\n");
 
     final String field_type_name = fieldModel.fieldType().stringValue();
     final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
     final int CEntryPointID = CEntryPointCounter++;
     final String cpp_static_keyword = accessFlags.has(AccessFlag.STATIC)?"inline static ":"";
     final String static_descriptor = accessFlags.has(AccessFlag.STATIC)?"static_":"";
-    final String java_class_name = ((field_type_class_desc.packageName().length()>0)?(field_type_class_desc.packageName() + "."):"") + field_type_class_desc.displayName().replace('$', '.');
+    final String java_class_name = ((field_type_class_desc.packageName().length()>0)?(field_type_class_desc.packageName() + "."):"") + field_type_class_desc.displayName();
     final String cpp_class_name = java_class_name.replace(".", "_");
-    final String java_instance_arg = accessFlags.has(AccessFlag.STATIC)?"":", final ObjectHandle instance_handle";
+    final String java_instance_arg = accessFlags.has(AccessFlag.STATIC)?"":", @CTypedef(name = \"OBJECT_HANDLE_" + class_name + "\") final ObjectHandle instance_handle";
     final String java_unbox_instance = accessFlags.has(AccessFlag.STATIC)?"":"    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n";
     final String java_field_base = accessFlags.has(AccessFlag.STATIC)?classNameJava:"instance";
     final String cpp_getter_specifier = accessFlags.has(AccessFlag.STATIC)?"noexcept":"const noexcept";
     final String cpp_func_static = accessFlags.has(AccessFlag.STATIC)?"static ":"";
-    final String cpp_this_arg = accessFlags.has(AccessFlag.STATIC)?"":", std::bit_cast<void *>(this)";
+    final String cpp_this_arg = accessFlags.has(AccessFlag.STATIC)?"":", ObjectHandle";
 
     String cpp_type = cpp_class_name;
-    if(cpp_type.equals("boolean")) cpp_type = "int";
-    if(cpp_type.equals("char")) cpp_type = "short";
+    if(cpp_type.equals("boolean")) cpp_type = "int32_t";
+    if(cpp_type.equals("char")) cpp_type = "int16_t";
+    if(cpp_type.equals("long")) cpp_type = "int64_t";
     if(!field_type_class_desc.isPrimitive()) cpp_type = "unique_" + cpp_type;
 
     final String cpp_putter = accessFlags.has(AccessFlag.FINAL)?"":", put = put_" + field_name;
@@ -415,19 +417,21 @@ public class BuildInterface {
       fw_java.write("    return " + java_field_base + "." + field_name +";\n");
       fw_java.write("  }\n");
 
-      fw_impl_hpp.write("    __forceinline " + cpp_func_static + cpp_type + " get_" + field_name + "() " + cpp_getter_specifier + " {\n");
+      fw_decl_hpp.write("    __forceinline " + cpp_func_static + cpp_type + " " + "get_" + field_name + "() " + cpp_getter_specifier + ";\n");
+      fw_impl_hpp.write("    __forceinline " + cpp_type + " " + classDesc.displayName() + "::get_" + field_name + "() " + cpp_getter_specifier + " {\n");
       fw_impl_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(localThread.get()" + cpp_this_arg + ");\n");
       fw_impl_hpp.write("    }\n");
 
       if(accessFlags.has(AccessFlag.STATIC) && accessFlags.has(AccessFlag.FINAL)) {   
-        fw_impl_hpp.write("    inline static const " + cpp_type + " " + field_name + "{id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get())};\n");
+        fw_decl_hpp.write("    static const " + cpp_type + " " + field_name + ";\n");
+        fw_impl_hpp.write("    const " + cpp_type + " " + classDesc.displayName() + "::" + field_name + "{id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get())};\n");
       }
     }
     if(field_type_class_desc.isClassOrInterface()) {
       if(accessFlags.has(AccessFlag.STATIC)) {
         fw_java.write("\n");
         fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-        fw_java.write("  @CTypedef(name = \"" + cpp_class_name + " *\")\n");
+        fw_java.write("  @CTypedef(name = \"OBJECT_HANDLE_" + cpp_class_name + "\")\n");
         fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
         fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(" + classNameJava + "." + field_name +");\n");
         fw_java.write("    return handle;\n");
@@ -435,35 +439,39 @@ public class BuildInterface {
 
         if(accessFlags.has(AccessFlag.FINAL)) {
           // fw_impl_hpp.write("    inline static const unique_" + cpp_class_name + " " + field_name + "{std::bit_cast<" + cpp_class_name + " *>(" + class_name + "_get_static_field_" + field_name + "(localThread.get()))};\n");
+          fw_decl_hpp.write("    __forceinline static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " get_" + field_name + "() noexcept;\n");
+          fw_decl_hpp.write("    static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + field_name + ";\n");
+
           fw_impl_hpp.write("\n");
-          fw_impl_hpp.write("    __forceinline static unique_" + cpp_class_name + " get_" + field_name + "() noexcept {\n");
+          fw_impl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::get_" + field_name + "() noexcept {\n");
           fw_impl_hpp.write("      if constexpr (is_debug) {\n");
           fw_impl_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
           fw_impl_hpp.write("      }\n");
-          fw_impl_hpp.write("      return unique_" + cpp_class_name + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
+          fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
           fw_impl_hpp.write("    }\n");
-          fw_impl_hpp.write("    inline static const unique_" + cpp_class_name + " " + field_name + "{get_" + field_name + "()};\n");
+          fw_impl_hpp.write("    ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::" + field_name + "{get_" + field_name + "()};\n");
         } else {
           fw_impl_hpp.write("\n");
-          fw_impl_hpp.write("    __forceinline static unique_" + cpp_class_name + " get_" + field_name + "() noexcept {\n");
+          fw_impl_hpp.write("    __forceinline static ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " get_" + field_name + "() noexcept {\n");
           fw_impl_hpp.write("      if constexpr (is_debug) {\n");
           fw_impl_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
           fw_impl_hpp.write("      }\n");
-          fw_impl_hpp.write("      return unique_" + cpp_class_name + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
+          fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
           fw_impl_hpp.write("    }\n");
         }
       } else {
         fw_java.write("\n");
         fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-        fw_java.write("  @CTypedef(name = \"" + cpp_class_name + " *\")\n");
-        fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, final ObjectHandle instance_handle) {\n");
+        fw_java.write("  @CTypedef(name = \"OBJECT_HANDLE_" + cpp_class_name + "\")\n");
+        fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(IsolateThread thread" + java_instance_arg + ") {\n");
         fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n");
         fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(instance." + field_name +");\n");
         fw_java.write("    return handle;\n");
         fw_java.write("  }\n");
 
-        fw_impl_hpp.write("    __forceinline unique_" + cpp_class_name + " get_" + field_name + "() const noexcept {\n");
-        fw_impl_hpp.write("      return unique_" + cpp_class_name + "(id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(localThread.get(), std::bit_cast<void *>(this)));\n");
+        fw_decl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + "get_" + field_name + "() const noexcept;\n");
+        fw_impl_hpp.write("    __forceinline ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + " " + classDesc.displayName() + "::get_" + field_name + "() const noexcept {\n");
+        fw_impl_hpp.write("      return ::" + field_type_class_desc.packageName().replace(".", "::") + "::" + field_type_class_desc.displayName() + "(id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(localThread.get(), ObjectHandle));\n");
         fw_impl_hpp.write("    }\n");
       }
     }
@@ -1199,7 +1207,7 @@ public class BuildInterface {
 
     if(classModel != null) {
       for(final FieldModel fieldModel: classModel.fields()) {
-        // write_field(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, fieldModel);
+        write_field(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, fieldModel);
       }
   
       for(final MethodModel methodModel: classModel.methods()) {
