@@ -399,7 +399,7 @@ public class BuildInterface {
     final String java_field_base = accessFlags.has(AccessFlag.STATIC)?classNameJava:"instance";
     final String cpp_getter_specifier = accessFlags.has(AccessFlag.STATIC)?"noexcept":"const noexcept";
     final String cpp_func_static = accessFlags.has(AccessFlag.STATIC)?"static ":"";
-    final String cpp_this_arg = accessFlags.has(AccessFlag.STATIC)?"":", ObjectHandle";
+    final String cpp_this_arg = accessFlags.has(AccessFlag.STATIC)?"":", std::bit_cast<" + classDesc.displayName() + "*>(this)->ObjectHandle";
 
     String cpp_type = cpp_class_name;
     if(cpp_type.equals("boolean")) cpp_type = "int32_t";
@@ -417,15 +417,25 @@ public class BuildInterface {
       fw_java.write("    return " + java_field_base + "." + field_name +";\n");
       fw_java.write("  }\n");
 
-      fw_decl_hpp.write("    __forceinline " + cpp_func_static + cpp_type + " " + "get_" + field_name + "() " + cpp_getter_specifier + ";\n");
-      fw_impl_hpp.write("    __forceinline " + cpp_type + " " + classDesc.displayName() + "::get_" + field_name + "() " + cpp_getter_specifier + " {\n");
+      fw_decl_hpp.write("\n");
+      fw_decl_hpp.write("    struct Property_" + CEntryPointID + "_" + field_name + " {\n");
+      fw_decl_hpp.write("      __forceinline operator " + cpp_type + "() const noexcept;\n");
+
+      fw_impl_hpp.write("    __forceinline " + classDesc.displayName() + "::Property_" + CEntryPointID + "_" + field_name + "::operator " + cpp_type + "() const noexcept {\n");
       fw_impl_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(localThread.get()" + cpp_this_arg + ");\n");
       fw_impl_hpp.write("    }\n");
 
-      if(accessFlags.has(AccessFlag.STATIC) && accessFlags.has(AccessFlag.FINAL)) {   
-        fw_decl_hpp.write("    static const " + cpp_type + " " + field_name + ";\n");
-        fw_impl_hpp.write("    const " + cpp_type + " " + classDesc.displayName() + "::" + field_name + "{id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get())};\n");
+      if(!accessFlags.has(AccessFlag.FINAL)) {
+        fw_decl_hpp.write("      __forceinline Property_" + CEntryPointID + "_" + field_name + "& operator=(const " + cpp_type + "& val) const noexcept;\n");
       }
+      fw_decl_hpp.write("    };\n\n");
+      if(accessFlags.has(AccessFlag.STATIC)) {
+        fw_decl_hpp.write("    static Property_" + CEntryPointID + "_" + field_name + " " + field_name + ";\n\n");
+        fw_impl_hpp.write("    " + classDesc.displayName() + "::Property_" + CEntryPointID + "_" + field_name + " " + classDesc.displayName() + "::" + field_name + "{};\n");
+      } else {
+        fw_decl_hpp.write("    [[no_unique_address]] Property_" + CEntryPointID + "_" + field_name + " " + field_name + ";\n\n");
+      }
+
     }
     if(field_type_class_desc.isClassOrInterface()) {
       if(accessFlags.has(AccessFlag.STATIC)) {
@@ -1154,8 +1164,6 @@ public class BuildInterface {
 
     fw_decl_hpp.write("  struct " + classDisplayName + " {\n");
 
-    fw_decl_hpp.write("    OBJECT_HANDLE_" + class_name + " ObjectHandle;\n\n");
-
     fw_decl_hpp.write("    /* deleted default constructor */\n");
     fw_decl_hpp.write("    " + classDisplayName + "() = delete;\n\n");
 
@@ -1235,6 +1243,8 @@ public class BuildInterface {
     }
 
     fw_java.write("}\n");
+    fw_decl_hpp.write("\n");
+    fw_decl_hpp.write("    OBJECT_HANDLE_" + class_name + " ObjectHandle;\n");
     fw_decl_hpp.write("  };\n");
 
     fw_frwd_hpp.write("};\n");
@@ -1390,8 +1400,6 @@ public class BuildInterface {
 
     fw_decl_hpp.write("  struct RANK_" + rank + "_" + classDisplayName + " {\n");
 
-    fw_decl_hpp.write("    OBJECT_HANDLE_RANK_" + rank + "_" + class_name + " ObjectHandle;\n\n");
-
     fw_decl_hpp.write("    /* deleted default constructor */\n");
     fw_decl_hpp.write("    RANK_" + rank + "_" + classDisplayName + "() = delete;\n\n");
 
@@ -1412,6 +1420,8 @@ public class BuildInterface {
 
     fw_decl_hpp.write("    /* destructor */\n");
     fw_decl_hpp.write("    ~RANK_" + rank + "_" + classDisplayName + "();\n");
+    fw_decl_hpp.write("\n");
+    fw_decl_hpp.write("    OBJECT_HANDLE_RANK_" + rank + "_" + class_name + " ObjectHandle;\n");
     fw_decl_hpp.write("  };\n\n");
   }
 
