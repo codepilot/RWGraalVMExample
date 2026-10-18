@@ -39,5 +39,9 @@ int main(int argc, char **argv) {
       }
     }
   }
+
+  using MainEntrypoint = com::xilinx::rapidwright::MainEntrypoint;
+  auto main_args{ ::java::lang::RANK_1_String(0) };
+  MainEntrypoint::main(main_args);
   return 0;
 }

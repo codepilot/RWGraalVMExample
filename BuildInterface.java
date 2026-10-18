@@ -228,12 +228,12 @@ public class BuildInterface {
       if(oldValue.contains(AccessFlag.SUPER)) mergedValue.add(AccessFlag.SUPER);
       if(oldValue.contains(AccessFlag.STATIC)) mergedValue.add(AccessFlag.STATIC);
 
-      System.out.println(
-        "classAccessFlagsMap.compute: " + k.packageName() + "." + k.displayName() +
-        ", oldValue: " + oldValue + 
-        ", newValue: " + newValue +
-        ", mergedValue: " + mergedValue
-      );
+      // System.out.println(
+      //   "classAccessFlagsMap.compute: " + k.packageName() + "." + k.displayName() +
+      //   ", oldValue: " + oldValue + 
+      //   ", newValue: " + newValue +
+      //   ", mergedValue: " + mergedValue
+      // );
       return mergedValue;
     });
 
@@ -257,12 +257,12 @@ public class BuildInterface {
           if(oldValue.contains(AccessFlag.SUPER)) mergedValue.add(AccessFlag.SUPER);
           if(oldValue.contains(AccessFlag.STATIC)) mergedValue.add(AccessFlag.STATIC);
           
-          System.out.println(
-            "classAccessFlagsMap.compute: " + k.packageName() + "." + k.displayName() +
-            ", oldValue: " + oldValue + 
-            ", newValue: " + newValue +
-            ", mergedValue: " + mergedValue
-          );
+          // System.out.println(
+          //   "classAccessFlagsMap.compute: " + k.packageName() + "." + k.displayName() +
+          //   ", oldValue: " + oldValue + 
+          //   ", newValue: " + newValue +
+          //   ", mergedValue: " + mergedValue
+          // );
           return mergedValue;
         });
 
@@ -1181,8 +1181,9 @@ public class BuildInterface {
     // fw_frwd_hpp.write("  struct RANK_1_" + classDisplayName + ";\n");
     // fw_frwd_hpp.write("  struct RANK_2_" + classDisplayName + ";\n");
 
-    decl_array_rank(fw_frwd_hpp, fw_decl_hpp, fw_impl_hpp, classDisplayName, class_name, 1);
-    decl_array_rank(fw_frwd_hpp, fw_decl_hpp, fw_impl_hpp, classDisplayName, class_name, 2);
+    for(int rank = 1; rank <= 2; rank++) {
+      decl_array_rank(fw_frwd_hpp, fw_decl_hpp, fw_impl_hpp, classDisplayName, class_name, rank, classDesc);
+    }
 
     // fw_decl_hpp.write("  struct RANK_1_" + classDisplayName + " {\n");
 
@@ -1307,6 +1308,31 @@ public class BuildInterface {
     fw_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
     fw_java.write("  }\n");
     fw_java.write("\n");
+
+    for(int rank = 1; rank <= 2; rank++) {
+      if(is_ClassDesc_public(classDesc)) {
+        fw_java.write("  @CEntryPoint(name = \"RANK_" + rank + "_" + class_name + "_constructor\")\n");
+        fw_java.write("  @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + class_name + "\")\n");
+        fw_java.write("  public static ObjectHandle RANK_" + rank + "_" + class_name + "_constructor(IsolateThread thread");
+        for(int dim = 1; dim <= rank; dim++) {
+          fw_java.write(", final int dim_" + dim);
+        }
+        fw_java.write(") {\n");
+        fw_java.write("    return ObjectHandles.getGlobal().create(new " + classNameJava.replace("$", "."));
+        for(int dim = 1; dim <= rank; dim++) {
+          fw_java.write("[dim_" + dim + "]");
+        }
+        fw_java.write(");\n");
+        fw_java.write("  }\n");
+        fw_java.write("\n");
+      }
+
+      fw_java.write("  @CEntryPoint(name = \"RANK_" + rank + "_" + class_name + "_free_instance\")\n");
+      fw_java.write("  public static void RANK_" + rank + "_" + class_name + "_free_instance(IsolateThread thread, @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + class_name + "\") final ObjectHandle handle) {\n");
+      fw_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
+      fw_java.write("  }\n");
+      fw_java.write("\n");
+    }
 
     if(classModel != null) {
       final SortedSet<String> usedNames = new TreeSet<>();
@@ -1461,9 +1487,9 @@ public class BuildInterface {
     
   }
 
-  static void general(final FileWriter java_file_list) throws IOException {
-    final String class_name = "general";
-    final String str_fw_java = "./src/com/xilinx/rapidwright/experimental/general.java";
+  static void createPrimitivesClass(final FileWriter java_file_list, final FileWriter hpp_frwd_list, final FileWriter hpp_decl_list, final FileWriter hpp_impl_list, final FileWriter hpp_frmt_list) throws IOException {
+    final String class_name = "primitives";
+    final String str_fw_java = "./src/com/xilinx/rapidwright/experimental/" + class_name + ".java";
     final FileWriter fw_java = new FileWriter(str_fw_java);
     final Path str_fw_java_path = Paths.get(str_fw_java).toAbsolutePath();
     java_file_list.write(str_fw_java_path.normalize().toString() + "\n");
@@ -1480,22 +1506,60 @@ public class BuildInterface {
     fw_java.write("import org.graalvm.nativeimage.c.type.CTypeConversion;\n");
     fw_java.write("import org.graalvm.nativeimage.c.type.CTypedef;\n");
     fw_java.write("import org.graalvm.nativeimage.c.type.CConst;\n");
+    fw_java.write("import org.graalvm.nativeimage.c.CHeader;\n");
     fw_java.write("import org.graalvm.word.UnsignedWord;\n");
     fw_java.write("import org.graalvm.word.WordFactory;\n");
+    fw_java.write("import java.io.PrintWriter;\n");
     fw_java.write("\n");
     
-    fw_java.write("public class " + class_name +" {\n");
-
-    fw_java.write("  @CEntryPoint(name = \"" + class_name + "_free_instance\")\n");
-    fw_java.write("  public static void " + class_name + "_free_instance(IsolateThread thread, final ObjectHandle handle) {\n");
-    fw_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
+    fw_java.write("@CHeader(" + class_name + ".class)\n");
+    fw_java.write("@SuppressWarnings({\"preview\",\"deprecation\",\"removal\"})\n");
+    fw_java.write("public class " + class_name + " implements CHeader.Header {\n");
+    fw_java.write("  @Override\n");
+    fw_java.write("  public String name() {\n");
+    fw_java.write("    return \"" + class_name + "\";\n");
     fw_java.write("  }\n");
+    fw_java.write("\n");
+
+    fw_java.write("  @Override\n");
+    fw_java.write("  public void writePreamble(PrintWriter writer) {\n");
+    fw_java.write("    writer.println(\"/* Automatically generated by BuildInterface.java */\");\n");
+    fw_java.write("  }\n");
+    fw_java.write("\n");
+
+    for(final String javaPrim: java_primitives) {
+      for(int rank = 1; rank <= 2; rank++) {
+        fw_java.write("  @CEntryPoint(name = \"RANK_" + rank + "_" + javaPrim + "_free_instance\")\n");
+        fw_java.write("  public static void RANK_" + rank + "_" + javaPrim + "_free_instance(IsolateThread thread, @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + javaPrim + "\") final ObjectHandle handle) {\n");
+        fw_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
+        fw_java.write("  }\n");
+        fw_java.write("\n");
+
+        fw_java.write("  @CEntryPoint(name = \"RANK_" + rank + "_" + javaPrim + "_constructor\")\n");
+        fw_java.write("  @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + javaPrim + "\")\n");
+        fw_java.write("  public static ObjectHandle RANK_" + rank + "_" + javaPrim + "_constructor(IsolateThread thread");
+        for(int dim = 1; dim <= rank; dim++) {
+          fw_java.write(", final int dim_" + dim);
+        }
+        fw_java.write(") {\n");
+        fw_java.write("    return ObjectHandles.getGlobal().create(new " + javaPrim.replace("$", "."));
+        for(int dim = 1; dim <= rank; dim++) {
+          fw_java.write("[dim_" + dim + "]");
+        }
+        fw_java.write(");\n");
+        fw_java.write("  }\n");
+        fw_java.write("\n");
+      }
+    }
+
 
     fw_java.write("}\n");
     fw_java.close();
+
+    hpp_impl_list.write("#include <" + class_name + ".h>\n");
   }
 
-  static void decl_array_rank(final FileWriter fw_frwd_hpp, final FileWriter fw_decl_hpp, final FileWriter fw_impl_hpp, final String classDisplayName, final String class_name, final int rank) throws IOException {
+  static void decl_array_rank(final FileWriter fw_frwd_hpp, final FileWriter fw_decl_hpp, final FileWriter fw_impl_hpp, final String classDisplayName, final String class_name, final int rank, final ClassDesc baseClassDesc) throws IOException {
     fw_frwd_hpp.write("  struct RANK_" + rank + "_" + classDisplayName + ";\n");
 
     fw_decl_hpp.write("  struct RANK_" + rank + "_" + classDisplayName + " {\n");
@@ -1518,11 +1582,43 @@ public class BuildInterface {
     fw_decl_hpp.write("    /* explicit handle constructor */\n");
     fw_decl_hpp.write("    explicit RANK_" + rank + "_" + classDisplayName + "(OBJECT_HANDLE_RANK_" + rank + "_" + class_name + " ObjectHandle);\n\n");
 
+    if(is_ClassDesc_public(baseClassDesc)) {
+      fw_decl_hpp.write("    /* explicit size constructor */\n");
+      fw_decl_hpp.write("    explicit RANK_" + rank + "_" + classDisplayName + "(");
+      for(int dim = 1; dim <= rank; dim++) {
+        if(dim > 1) fw_decl_hpp.write(", ");
+        fw_decl_hpp.write("const int32_t size_arg_" + dim);
+      }
+      fw_decl_hpp.write(") noexcept;\n\n");
+    }
+
     fw_decl_hpp.write("    /* destructor */\n");
     fw_decl_hpp.write("    ~RANK_" + rank + "_" + classDisplayName + "();\n");
     fw_decl_hpp.write("\n");
     fw_decl_hpp.write("    OBJECT_HANDLE_RANK_" + rank + "_" + class_name + " ObjectHandle;\n");
     fw_decl_hpp.write("  };\n\n");
+
+    if(is_ClassDesc_public(baseClassDesc)) {
+      fw_impl_hpp.write("  RANK_" + rank + "_" + classDisplayName + "::RANK_" + rank + "_" + classDisplayName + "(");
+      for(int dim = 1; dim <= rank; dim++) {
+        if(dim > 1) fw_impl_hpp.write(", ");
+        fw_impl_hpp.write("const int32_t size_arg_" + dim);
+      }
+      fw_impl_hpp.write(") noexcept: ObjectHandle{RANK_" + rank + "_" + class_name + "_constructor(localThread.get(), ");
+      for(int dim = 1; dim <= rank; dim++) {
+        if(dim > 1) fw_impl_hpp.write(", ");
+        fw_impl_hpp.write("size_arg_" + dim);
+      }
+      fw_impl_hpp.write(")} {\n");
+      fw_impl_hpp.write("  }\n");
+    }
+
+    fw_impl_hpp.write("  __forceinline RANK_" + rank + "_" + classDisplayName + "::~RANK_" + rank + "_" + classDisplayName + "() noexcept {\n");
+    fw_impl_hpp.write("    if (ObjectHandle) {\n");
+    fw_impl_hpp.write("      RANK_" + rank + "_" + class_name + "_free_instance(localThread.get(), ObjectHandle);\n");
+    fw_impl_hpp.write("    }\n");
+    fw_impl_hpp.write("  }\n");
+
   }
 
   public static void main(final String[] args) throws IOException {
@@ -1542,11 +1638,13 @@ public class BuildInterface {
     hpp_impl_list.write("#pragma once\n\n");
     hpp_frmt_list.write("#pragma once\n\n");
 
+    createPrimitivesClass(java_file_list, hpp_frwd_list, hpp_decl_list, hpp_impl_list, hpp_frmt_list);
+
     for(final String javaPrim: java_primitives) {
       for(int rank = 1; rank <= 2; rank++) {
         // hpp_frwd_list.write("  struct OBJECT_RANK_" + rank + "_" + javaPrim + ";\n");
         hpp_frwd_list.write("  using OBJECT_HANDLE_RANK_" + rank + "_" + javaPrim + " = intptr_t;\n");
-        decl_array_rank(hpp_frwd_list, hpp_decl_list, hpp_impl_list, javaPrim, javaPrim, rank);
+        decl_array_rank(hpp_frwd_list, hpp_decl_list, hpp_impl_list, javaPrim, javaPrim, rank, ClassDesc.of(javaPrim));
       }
     }
 
@@ -1562,8 +1660,6 @@ public class BuildInterface {
     // hpp_using_list.write("  }\n");
     // hpp_using_list.write("};\n");
     // hpp_using_list.write("\n");
-
-    // general(java_file_list);
 
     // for(final ClassModel classModel: missingClassSet) {
     //   final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
@@ -1623,8 +1719,8 @@ public class BuildInterface {
     hpp_impl_list.close();
     hpp_frmt_list.close();
 
-    for(final Entry<ClassDesc, Set<AccessFlag>> entry: classAccessFlagsMap.entrySet()) {
-      System.out.println(entry.getKey().packageName() + "." + entry.getKey().displayName() + " " + entry.getValue());
-    }
+    // for(final Entry<ClassDesc, Set<AccessFlag>> entry: classAccessFlagsMap.entrySet()) {
+    //   System.out.println(entry.getKey().packageName() + "." + entry.getKey().displayName() + " " + entry.getValue());
+    // }
   }
 }

@@ -134,6 +134,8 @@ execute_process(
   --initialize-at-run-time=com.xilinx.rapidwright.gui.UiPBlock
   --initialize-at-run-time=com.xilinx.rapidwright.gui.UiTools
   --initialize-at-run-time=com.xilinx.rapidwright.gui.WidgetMaker
+  --initialize-at-run-time=org.fusesource.jansi.internal.Kernel32
+  --initialize-at-run-time=org.fusesource.jansi.internal.CLibrary
   --enable-native-access=ALL-UNNAMED
   --shared
   --emit build-report

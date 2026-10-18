@@ -19,7 +19,24 @@
       "type": "com.sun.tools.javac.jvm.ClassWriter$StackMapTableFrame[]"
     },
     {
+      "type": "com.sun.tools.javac.jvm.Code$LocalVar[]"
+    },
+    {
       "type": "com.sun.tools.javac.jvm.PoolConstant$LoadableConstant[]"
+    },
+    {
+      "type": "com.sun.tools.javac.tree.JCTree$JCVariableDecl[]"
+    },
+    {
+      "type": "com.xilinx.rapidwright.examples.BuildInterface",
+      "methods": [
+        {
+          "name": "main",
+          "parameterTypes": [
+            "java.lang.String[]"
+          ]
+        }
+      ]
     },
     {
       "type": "com.xilinx.rapidwright.examples.FileToolsUpdateAllDataFiles",
@@ -65,7 +82,168 @@
       "type": "jdk.internal.module.IllegalAccessLogger"
     },
     {
+      "type": "org.fusesource.jansi.internal.CLibrary",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "HAVE_ISATTY"
+        },
+        {
+          "name": "STDERR_FILENO"
+        },
+        {
+          "name": "STDIN_FILENO"
+        },
+        {
+          "name": "STDOUT_FILENO"
+        }
+      ]
+    },
+    {
+      "type": "org.fusesource.jansi.internal.Kernel32",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "BACKGROUND_BLUE"
+        },
+        {
+          "name": "BACKGROUND_GREEN"
+        },
+        {
+          "name": "BACKGROUND_INTENSITY"
+        },
+        {
+          "name": "BACKGROUND_RED"
+        },
+        {
+          "name": "COMMON_LVB_GRID_HORIZONTAL"
+        },
+        {
+          "name": "COMMON_LVB_GRID_LVERTICAL"
+        },
+        {
+          "name": "COMMON_LVB_GRID_RVERTICAL"
+        },
+        {
+          "name": "COMMON_LVB_LEADING_BYTE"
+        },
+        {
+          "name": "COMMON_LVB_REVERSE_VIDEO"
+        },
+        {
+          "name": "COMMON_LVB_TRAILING_BYTE"
+        },
+        {
+          "name": "COMMON_LVB_UNDERSCORE"
+        },
+        {
+          "name": "FOREGROUND_BLUE"
+        },
+        {
+          "name": "FOREGROUND_GREEN"
+        },
+        {
+          "name": "FOREGROUND_INTENSITY"
+        },
+        {
+          "name": "FOREGROUND_RED"
+        },
+        {
+          "name": "FORMAT_MESSAGE_FROM_SYSTEM"
+        },
+        {
+          "name": "INVALID_HANDLE_VALUE"
+        },
+        {
+          "name": "STD_ERROR_HANDLE"
+        },
+        {
+          "name": "STD_INPUT_HANDLE"
+        },
+        {
+          "name": "STD_OUTPUT_HANDLE"
+        }
+      ],
+      "methods": [
+        {
+          "name": "GetStdHandle",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.fusesource.jansi.internal.Kernel32$CONSOLE_SCREEN_BUFFER_INFO",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "SIZEOF"
+        },
+        {
+          "name": "attributes"
+        },
+        {
+          "name": "cursorPosition"
+        },
+        {
+          "name": "maximumWindowSize"
+        },
+        {
+          "name": "size"
+        },
+        {
+          "name": "window"
+        }
+      ]
+    },
+    {
+      "type": "org.fusesource.jansi.internal.Kernel32$COORD",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "SIZEOF"
+        },
+        {
+          "name": "x"
+        },
+        {
+          "name": "y"
+        }
+      ]
+    },
+    {
+      "type": "org.fusesource.jansi.internal.Kernel32$SMALL_RECT",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "SIZEOF"
+        },
+        {
+          "name": "bottom"
+        },
+        {
+          "name": "left"
+        },
+        {
+          "name": "right"
+        },
+        {
+          "name": "top"
+        }
+      ]
+    },
+    {
       "type": "org.osgi.framework.BundleEvent"
+    },
+    {
+      "type": "org.python.jline.AnsiWindowsTerminal",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "sun.management.VMManagementImpl",
@@ -160,9 +338,1221 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "sun.text.resources.cldr.FormatData"
+    },
+    {
+      "type": "sun.text.resources.cldr.FormatData_en"
+    },
+    {
+      "type": "sun.text.resources.cldr.FormatData_en_US"
     }
   ],
   "resources": [
+    {
+      "glob": "/com/esotericsoftware/kryo/Kryo.class"
+    },
+    {
+      "glob": "/com/esotericsoftware/kryo/io/Input.class"
+    },
+    {
+      "glob": "/com/esotericsoftware/kryo/io/Output.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/QSignalEmitter$Signal0.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/QSignalEmitter$Signal1.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/QSignalEmitter$Signal2.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/core/QEvent.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/core/QModelIndex.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/core/QPoint.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/core/QPointF.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/core/QRect.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/core/QRectF.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/core/QSize.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QBitmap.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QBrush.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QColor.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QDockWidget.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QFileDialog$Filter.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QGraphicsItem$GraphicsItemChange.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QGraphicsItemInterface.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QGraphicsRectItem.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QGraphicsScene.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QGraphicsSceneHoverEvent.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QGraphicsSceneMouseEvent.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QImage.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QKeyEvent.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QMouseEvent.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QPainter.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QPen.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QPolygonF.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QStyleOptionGraphicsItem.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QToolBar.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QTreeWidget.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QTreeWidgetItem.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QWheelEvent.class"
+    },
+    {
+      "glob": "/com/trolltech/qt/gui/QWidget.class"
+    },
+    {
+      "glob": "/com/xilinx/rapidwright/edif/EDIFToken.class"
+    },
+    {
+      "glob": "/com/xilinx/rapidwright/examples/PipelineGenerator$direction.class"
+    },
+    {
+      "glob": "/com/xilinx/rapidwright/examples/PipelineGeneratorWithRouting$direction.class"
+    },
+    {
+      "glob": "/com/xilinx/rapidwright/interchange/RouteBranchNode$RouteSegmentType.class"
+    },
+    {
+      "glob": "/com/xilinx/rapidwright/rwroute/RWRoute$ConnectionState.class"
+    },
+    {
+      "glob": "/com/xilinx/rapidwright/timing/DelayModelSource.class"
+    },
+    {
+      "glob": "/java/io/BufferedInputStream.class"
+    },
+    {
+      "glob": "/java/io/BufferedReader.class"
+    },
+    {
+      "glob": "/java/io/BufferedWriter.class"
+    },
+    {
+      "glob": "/java/io/DataInput.class"
+    },
+    {
+      "glob": "/java/io/DataInputStream.class"
+    },
+    {
+      "glob": "/java/io/DataOutputStream.class"
+    },
+    {
+      "glob": "/java/io/File.class"
+    },
+    {
+      "glob": "/java/io/FileFilter.class"
+    },
+    {
+      "glob": "/java/io/FilenameFilter.class"
+    },
+    {
+      "glob": "/java/io/InputStream.class"
+    },
+    {
+      "glob": "/java/io/OutputStream.class"
+    },
+    {
+      "glob": "/java/io/PrintStream.class"
+    },
+    {
+      "glob": "/java/io/PrintWriter.class"
+    },
+    {
+      "glob": "/java/io/Reader.class"
+    },
+    {
+      "glob": "/java/io/Writer.class"
+    },
+    {
+      "glob": "/java/lang/AbstractStringBuilder.class"
+    },
+    {
+      "glob": "/java/lang/Appendable.class"
+    },
+    {
+      "glob": "/java/lang/Boolean.class"
+    },
+    {
+      "glob": "/java/lang/CharSequence.class"
+    },
+    {
+      "glob": "/java/lang/Class.class"
+    },
+    {
+      "glob": "/java/lang/ClassLoader.class"
+    },
+    {
+      "glob": "/java/lang/Double.class"
+    },
+    {
+      "glob": "/java/lang/Enum.class"
+    },
+    {
+      "glob": "/java/lang/Float.class"
+    },
+    {
+      "glob": "/java/lang/Integer.class"
+    },
+    {
+      "glob": "/java/lang/Iterable.class"
+    },
+    {
+      "glob": "/java/lang/Long.class"
+    },
+    {
+      "glob": "/java/lang/Module.class"
+    },
+    {
+      "glob": "/java/lang/ModuleLayer$Controller.class"
+    },
+    {
+      "glob": "/java/lang/ModuleLayer.class"
+    },
+    {
+      "glob": "/java/lang/Object.class"
+    },
+    {
+      "glob": "/java/lang/Package.class"
+    },
+    {
+      "glob": "/java/lang/Runnable.class"
+    },
+    {
+      "glob": "/java/lang/Short.class"
+    },
+    {
+      "glob": "/java/lang/StackTraceElement.class"
+    },
+    {
+      "glob": "/java/lang/String.class"
+    },
+    {
+      "glob": "/java/lang/StringBuffer.class"
+    },
+    {
+      "glob": "/java/lang/StringBuilder.class"
+    },
+    {
+      "glob": "/java/lang/Thread$Builder$OfPlatform.class"
+    },
+    {
+      "glob": "/java/lang/Thread$Builder$OfVirtual.class"
+    },
+    {
+      "glob": "/java/lang/Thread$Builder.class"
+    },
+    {
+      "glob": "/java/lang/Thread$State.class"
+    },
+    {
+      "glob": "/java/lang/Thread$UncaughtExceptionHandler.class"
+    },
+    {
+      "glob": "/java/lang/Thread.class"
+    },
+    {
+      "glob": "/java/lang/ThreadGroup.class"
+    },
+    {
+      "glob": "/java/lang/Throwable.class"
+    },
+    {
+      "glob": "/java/lang/annotation/Annotation.class"
+    },
+    {
+      "glob": "/java/lang/foreign/AddressLayout.class"
+    },
+    {
+      "glob": "/java/lang/foreign/Arena.class"
+    },
+    {
+      "glob": "/java/lang/foreign/GroupLayout.class"
+    },
+    {
+      "glob": "/java/lang/foreign/MemoryLayout.class"
+    },
+    {
+      "glob": "/java/lang/foreign/MemoryLayout/PathElement.class"
+    },
+    {
+      "glob": "/java/lang/foreign/MemorySegment$Scope.class"
+    },
+    {
+      "glob": "/java/lang/foreign/MemorySegment.class"
+    },
+    {
+      "glob": "/java/lang/foreign/PaddingLayout.class"
+    },
+    {
+      "glob": "/java/lang/foreign/SequenceLayout.class"
+    },
+    {
+      "glob": "/java/lang/foreign/StructLayout.class"
+    },
+    {
+      "glob": "/java/lang/foreign/UnionLayout.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout$OfBoolean.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout$OfByte.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout$OfChar.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout$OfDouble.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout$OfFloat.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout$OfInt.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout$OfLong.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout$OfShort.class"
+    },
+    {
+      "glob": "/java/lang/foreign/ValueLayout.class"
+    },
+    {
+      "glob": "/java/lang/invoke/MethodHandle.class"
+    },
+    {
+      "glob": "/java/lang/invoke/MethodHandleInfo.class"
+    },
+    {
+      "glob": "/java/lang/invoke/MethodHandles$Lookup.class"
+    },
+    {
+      "glob": "/java/lang/invoke/MethodHandles/Lookup/ClassOption.class"
+    },
+    {
+      "glob": "/java/lang/invoke/MethodType.class"
+    },
+    {
+      "glob": "/java/lang/invoke/TypeDescriptor$OfField.class"
+    },
+    {
+      "glob": "/java/lang/invoke/TypeDescriptor$OfMethod.class"
+    },
+    {
+      "glob": "/java/lang/invoke/VarHandle$AccessMode.class"
+    },
+    {
+      "glob": "/java/lang/invoke/VarHandle.class"
+    },
+    {
+      "glob": "/java/lang/module/Configuration.class"
+    },
+    {
+      "glob": "/java/lang/module/ModuleDescriptor$Builder.class"
+    },
+    {
+      "glob": "/java/lang/module/ModuleDescriptor$Exports.class"
+    },
+    {
+      "glob": "/java/lang/module/ModuleDescriptor$Opens.class"
+    },
+    {
+      "glob": "/java/lang/module/ModuleDescriptor$Provides.class"
+    },
+    {
+      "glob": "/java/lang/module/ModuleDescriptor$Requires.class"
+    },
+    {
+      "glob": "/java/lang/module/ModuleDescriptor$Version.class"
+    },
+    {
+      "glob": "/java/lang/module/ModuleDescriptor.class"
+    },
+    {
+      "glob": "/java/lang/module/ModuleFinder.class"
+    },
+    {
+      "glob": "/java/lang/reflect/AnnotatedType.class"
+    },
+    {
+      "glob": "/java/lang/reflect/Constructor.class"
+    },
+    {
+      "glob": "/java/lang/reflect/Field.class"
+    },
+    {
+      "glob": "/java/lang/reflect/GenericDeclaration.class"
+    },
+    {
+      "glob": "/java/lang/reflect/Member.class"
+    },
+    {
+      "glob": "/java/lang/reflect/Method.class"
+    },
+    {
+      "glob": "/java/lang/reflect/RecordComponent.class"
+    },
+    {
+      "glob": "/java/lang/reflect/Type.class"
+    },
+    {
+      "glob": "/java/lang/reflect/TypeVariable.class"
+    },
+    {
+      "glob": "/java/math/BigInteger.class"
+    },
+    {
+      "glob": "/java/net/ContentHandler.class"
+    },
+    {
+      "glob": "/java/net/ContentHandlerFactory.class"
+    },
+    {
+      "glob": "/java/net/FileNameMap.class"
+    },
+    {
+      "glob": "/java/net/Proxy$Type.class"
+    },
+    {
+      "glob": "/java/net/Proxy.class"
+    },
+    {
+      "glob": "/java/net/SocketAddress.class"
+    },
+    {
+      "glob": "/java/net/URI.class"
+    },
+    {
+      "glob": "/java/net/URL.class"
+    },
+    {
+      "glob": "/java/net/URLConnection.class"
+    },
+    {
+      "glob": "/java/net/URLStreamHandler.class"
+    },
+    {
+      "glob": "/java/net/URLStreamHandlerFactory.class"
+    },
+    {
+      "glob": "/java/nio/Buffer.class"
+    },
+    {
+      "glob": "/java/nio/ByteBuffer.class"
+    },
+    {
+      "glob": "/java/nio/ByteOrder.class"
+    },
+    {
+      "glob": "/java/nio/CharBuffer.class"
+    },
+    {
+      "glob": "/java/nio/DoubleBuffer.class"
+    },
+    {
+      "glob": "/java/nio/FloatBuffer.class"
+    },
+    {
+      "glob": "/java/nio/IntBuffer.class"
+    },
+    {
+      "glob": "/java/nio/LongBuffer.class"
+    },
+    {
+      "glob": "/java/nio/MappedByteBuffer.class"
+    },
+    {
+      "glob": "/java/nio/ShortBuffer.class"
+    },
+    {
+      "glob": "/java/nio/channels/AsynchronousFileChannel.class"
+    },
+    {
+      "glob": "/java/nio/channels/Channel.class"
+    },
+    {
+      "glob": "/java/nio/channels/CompletionHandler.class"
+    },
+    {
+      "glob": "/java/nio/channels/FileChannel$MapMode.class"
+    },
+    {
+      "glob": "/java/nio/channels/FileChannel.class"
+    },
+    {
+      "glob": "/java/nio/channels/FileLock.class"
+    },
+    {
+      "glob": "/java/nio/channels/ReadableByteChannel.class"
+    },
+    {
+      "glob": "/java/nio/channels/SeekableByteChannel.class"
+    },
+    {
+      "glob": "/java/nio/channels/WritableByteChannel.class"
+    },
+    {
+      "glob": "/java/nio/charset/Charset.class"
+    },
+    {
+      "glob": "/java/nio/charset/CharsetDecoder.class"
+    },
+    {
+      "glob": "/java/nio/charset/CharsetEncoder.class"
+    },
+    {
+      "glob": "/java/nio/charset/CoderResult.class"
+    },
+    {
+      "glob": "/java/nio/charset/CodingErrorAction.class"
+    },
+    {
+      "glob": "/java/nio/file/AccessMode.class"
+    },
+    {
+      "glob": "/java/nio/file/CopyOption.class"
+    },
+    {
+      "glob": "/java/nio/file/DirectoryStream$Filter.class"
+    },
+    {
+      "glob": "/java/nio/file/DirectoryStream.class"
+    },
+    {
+      "glob": "/java/nio/file/FileStore.class"
+    },
+    {
+      "glob": "/java/nio/file/FileSystem.class"
+    },
+    {
+      "glob": "/java/nio/file/LinkOption.class"
+    },
+    {
+      "glob": "/java/nio/file/OpenOption.class"
+    },
+    {
+      "glob": "/java/nio/file/Path.class"
+    },
+    {
+      "glob": "/java/nio/file/PathMatcher.class"
+    },
+    {
+      "glob": "/java/nio/file/WatchEvent/Kind.class"
+    },
+    {
+      "glob": "/java/nio/file/WatchEvent/Modifier.class"
+    },
+    {
+      "glob": "/java/nio/file/WatchKey.class"
+    },
+    {
+      "glob": "/java/nio/file/WatchService.class"
+    },
+    {
+      "glob": "/java/nio/file/Watchable.class"
+    },
+    {
+      "glob": "/java/nio/file/attribute/BasicFileAttributes.class"
+    },
+    {
+      "glob": "/java/nio/file/attribute/FileAttribute.class"
+    },
+    {
+      "glob": "/java/nio/file/attribute/FileAttributeView.class"
+    },
+    {
+      "glob": "/java/nio/file/attribute/FileStoreAttributeView.class"
+    },
+    {
+      "glob": "/java/nio/file/attribute/FileTime.class"
+    },
+    {
+      "glob": "/java/nio/file/attribute/GroupPrincipal.class"
+    },
+    {
+      "glob": "/java/nio/file/attribute/UserPrincipal.class"
+    },
+    {
+      "glob": "/java/nio/file/attribute/UserPrincipalLookupService.class"
+    },
+    {
+      "glob": "/java/nio/file/spi/FileSystemProvider.class"
+    },
+    {
+      "glob": "/java/security/AccessControlContext.class"
+    },
+    {
+      "glob": "/java/security/CodeSigner.class"
+    },
+    {
+      "glob": "/java/security/CodeSource.class"
+    },
+    {
+      "glob": "/java/security/DomainCombiner.class"
+    },
+    {
+      "glob": "/java/security/Permission.class"
+    },
+    {
+      "glob": "/java/security/PermissionCollection.class"
+    },
+    {
+      "glob": "/java/security/Principal.class"
+    },
+    {
+      "glob": "/java/security/PrivilegedAction.class"
+    },
+    {
+      "glob": "/java/security/PrivilegedExceptionAction.class"
+    },
+    {
+      "glob": "/java/security/ProtectionDomain.class"
+    },
+    {
+      "glob": "/java/security/Provider$Service.class"
+    },
+    {
+      "glob": "/java/security/Provider.class"
+    },
+    {
+      "glob": "/java/security/PublicKey.class"
+    },
+    {
+      "glob": "/java/security/Timestamp.class"
+    },
+    {
+      "glob": "/java/security/cert/CertPath.class"
+    },
+    {
+      "glob": "/java/security/cert/Certificate.class"
+    },
+    {
+      "glob": "/java/text/AttributedCharacterIterator$Attribute.class"
+    },
+    {
+      "glob": "/java/text/AttributedCharacterIterator.class"
+    },
+    {
+      "glob": "/java/text/FieldPosition.class"
+    },
+    {
+      "glob": "/java/text/Format$Field.class"
+    },
+    {
+      "glob": "/java/text/Format.class"
+    },
+    {
+      "glob": "/java/text/ParsePosition.class"
+    },
+    {
+      "glob": "/java/time/Clock.class"
+    },
+    {
+      "glob": "/java/time/DayOfWeek.class"
+    },
+    {
+      "glob": "/java/time/Duration.class"
+    },
+    {
+      "glob": "/java/time/Instant.class"
+    },
+    {
+      "glob": "/java/time/LocalDate.class"
+    },
+    {
+      "glob": "/java/time/LocalDateTime.class"
+    },
+    {
+      "glob": "/java/time/LocalTime.class"
+    },
+    {
+      "glob": "/java/time/Month.class"
+    },
+    {
+      "glob": "/java/time/OffsetDateTime.class"
+    },
+    {
+      "glob": "/java/time/OffsetTime.class"
+    },
+    {
+      "glob": "/java/time/Period.class"
+    },
+    {
+      "glob": "/java/time/ZoneId.class"
+    },
+    {
+      "glob": "/java/time/ZoneOffset.class"
+    },
+    {
+      "glob": "/java/time/ZonedDateTime.class"
+    },
+    {
+      "glob": "/java/time/chrono/ChronoLocalDate.class"
+    },
+    {
+      "glob": "/java/time/chrono/ChronoLocalDateTime.class"
+    },
+    {
+      "glob": "/java/time/chrono/ChronoPeriod.class"
+    },
+    {
+      "glob": "/java/time/chrono/ChronoZonedDateTime.class"
+    },
+    {
+      "glob": "/java/time/chrono/Chronology.class"
+    },
+    {
+      "glob": "/java/time/chrono/Era.class"
+    },
+    {
+      "glob": "/java/time/chrono/IsoChronology.class"
+    },
+    {
+      "glob": "/java/time/chrono/IsoEra.class"
+    },
+    {
+      "glob": "/java/time/format/DateTimeFormatter.class"
+    },
+    {
+      "glob": "/java/time/format/DecimalStyle.class"
+    },
+    {
+      "glob": "/java/time/format/FormatStyle.class"
+    },
+    {
+      "glob": "/java/time/format/ResolverStyle.class"
+    },
+    {
+      "glob": "/java/time/format/TextStyle.class"
+    },
+    {
+      "glob": "/java/time/temporal/ChronoField.class"
+    },
+    {
+      "glob": "/java/time/temporal/ChronoUnit.class"
+    },
+    {
+      "glob": "/java/time/temporal/Temporal.class"
+    },
+    {
+      "glob": "/java/time/temporal/TemporalAccessor.class"
+    },
+    {
+      "glob": "/java/time/temporal/TemporalAdjuster.class"
+    },
+    {
+      "glob": "/java/time/temporal/TemporalAmount.class"
+    },
+    {
+      "glob": "/java/time/temporal/TemporalField.class"
+    },
+    {
+      "glob": "/java/time/temporal/TemporalQuery.class"
+    },
+    {
+      "glob": "/java/time/temporal/TemporalUnit.class"
+    },
+    {
+      "glob": "/java/time/temporal/ValueRange.class"
+    },
+    {
+      "glob": "/java/time/zone/ZoneOffsetTransition.class"
+    },
+    {
+      "glob": "/java/time/zone/ZoneRules.class"
+    },
+    {
+      "glob": "/java/util/ArrayList.class"
+    },
+    {
+      "glob": "/java/util/Collection.class"
+    },
+    {
+      "glob": "/java/util/Comparator.class"
+    },
+    {
+      "glob": "/java/util/Date.class"
+    },
+    {
+      "glob": "/java/util/Deque.class"
+    },
+    {
+      "glob": "/java/util/DoubleSummaryStatistics.class"
+    },
+    {
+      "glob": "/java/util/EnumSet.class"
+    },
+    {
+      "glob": "/java/util/Enumeration.class"
+    },
+    {
+      "glob": "/java/util/HashMap.class"
+    },
+    {
+      "glob": "/java/util/HashSet.class"
+    },
+    {
+      "glob": "/java/util/IntSummaryStatistics.class"
+    },
+    {
+      "glob": "/java/util/Iterator.class"
+    },
+    {
+      "glob": "/java/util/LinkedHashMap.class"
+    },
+    {
+      "glob": "/java/util/List.class"
+    },
+    {
+      "glob": "/java/util/ListIterator.class"
+    },
+    {
+      "glob": "/java/util/Locale$Category.class"
+    },
+    {
+      "glob": "/java/util/Locale$FilteringMode.class"
+    },
+    {
+      "glob": "/java/util/Locale$IsoCountryCode.class"
+    },
+    {
+      "glob": "/java/util/Locale.class"
+    },
+    {
+      "glob": "/java/util/LongSummaryStatistics.class"
+    },
+    {
+      "glob": "/java/util/Map$Entry.class"
+    },
+    {
+      "glob": "/java/util/Map.class"
+    },
+    {
+      "glob": "/java/util/NavigableMap.class"
+    },
+    {
+      "glob": "/java/util/NavigableSet.class"
+    },
+    {
+      "glob": "/java/util/Optional.class"
+    },
+    {
+      "glob": "/java/util/OptionalDouble.class"
+    },
+    {
+      "glob": "/java/util/OptionalInt.class"
+    },
+    {
+      "glob": "/java/util/OptionalLong.class"
+    },
+    {
+      "glob": "/java/util/PrimitiveIterator$OfDouble.class"
+    },
+    {
+      "glob": "/java/util/PrimitiveIterator$OfInt.class"
+    },
+    {
+      "glob": "/java/util/PrimitiveIterator$OfLong.class"
+    },
+    {
+      "glob": "/java/util/PriorityQueue.class"
+    },
+    {
+      "glob": "/java/util/Random.class"
+    },
+    {
+      "glob": "/java/util/SequencedCollection.class"
+    },
+    {
+      "glob": "/java/util/SequencedMap.class"
+    },
+    {
+      "glob": "/java/util/SequencedSet.class"
+    },
+    {
+      "glob": "/java/util/Set.class"
+    },
+    {
+      "glob": "/java/util/SortedMap.class"
+    },
+    {
+      "glob": "/java/util/SortedSet.class"
+    },
+    {
+      "glob": "/java/util/Spliterator$OfDouble.class"
+    },
+    {
+      "glob": "/java/util/Spliterator$OfInt.class"
+    },
+    {
+      "glob": "/java/util/Spliterator$OfLong.class"
+    },
+    {
+      "glob": "/java/util/Spliterator$OfPrimitive.class"
+    },
+    {
+      "glob": "/java/util/Spliterator.class"
+    },
+    {
+      "glob": "/java/util/TreeMap.class"
+    },
+    {
+      "glob": "/java/util/concurrent/Callable.class"
+    },
+    {
+      "glob": "/java/util/concurrent/ExecutorService.class"
+    },
+    {
+      "glob": "/java/util/concurrent/Future$State.class"
+    },
+    {
+      "glob": "/java/util/concurrent/Future.class"
+    },
+    {
+      "glob": "/java/util/concurrent/RunnableFuture.class"
+    },
+    {
+      "glob": "/java/util/concurrent/ThreadFactory.class"
+    },
+    {
+      "glob": "/java/util/concurrent/TimeUnit.class"
+    },
+    {
+      "glob": "/java/util/concurrent/atomic/AtomicInteger.class"
+    },
+    {
+      "glob": "/java/util/function/BiConsumer.class"
+    },
+    {
+      "glob": "/java/util/function/BiFunction.class"
+    },
+    {
+      "glob": "/java/util/function/BiPredicate.class"
+    },
+    {
+      "glob": "/java/util/function/BinaryOperator.class"
+    },
+    {
+      "glob": "/java/util/function/Consumer.class"
+    },
+    {
+      "glob": "/java/util/function/DoubleBinaryOperator.class"
+    },
+    {
+      "glob": "/java/util/function/DoubleConsumer.class"
+    },
+    {
+      "glob": "/java/util/function/DoubleFunction.class"
+    },
+    {
+      "glob": "/java/util/function/DoublePredicate.class"
+    },
+    {
+      "glob": "/java/util/function/DoubleSupplier.class"
+    },
+    {
+      "glob": "/java/util/function/DoubleToIntFunction.class"
+    },
+    {
+      "glob": "/java/util/function/DoubleToLongFunction.class"
+    },
+    {
+      "glob": "/java/util/function/DoubleUnaryOperator.class"
+    },
+    {
+      "glob": "/java/util/function/Function.class"
+    },
+    {
+      "glob": "/java/util/function/IntBinaryOperator.class"
+    },
+    {
+      "glob": "/java/util/function/IntConsumer.class"
+    },
+    {
+      "glob": "/java/util/function/IntFunction.class"
+    },
+    {
+      "glob": "/java/util/function/IntPredicate.class"
+    },
+    {
+      "glob": "/java/util/function/IntSupplier.class"
+    },
+    {
+      "glob": "/java/util/function/IntToDoubleFunction.class"
+    },
+    {
+      "glob": "/java/util/function/IntToLongFunction.class"
+    },
+    {
+      "glob": "/java/util/function/IntUnaryOperator.class"
+    },
+    {
+      "glob": "/java/util/function/LongBinaryOperator.class"
+    },
+    {
+      "glob": "/java/util/function/LongConsumer.class"
+    },
+    {
+      "glob": "/java/util/function/LongFunction.class"
+    },
+    {
+      "glob": "/java/util/function/LongPredicate.class"
+    },
+    {
+      "glob": "/java/util/function/LongSupplier.class"
+    },
+    {
+      "glob": "/java/util/function/LongToDoubleFunction.class"
+    },
+    {
+      "glob": "/java/util/function/LongToIntFunction.class"
+    },
+    {
+      "glob": "/java/util/function/LongUnaryOperator.class"
+    },
+    {
+      "glob": "/java/util/function/ObjDoubleConsumer.class"
+    },
+    {
+      "glob": "/java/util/function/ObjIntConsumer.class"
+    },
+    {
+      "glob": "/java/util/function/ObjLongConsumer.class"
+    },
+    {
+      "glob": "/java/util/function/Predicate.class"
+    },
+    {
+      "glob": "/java/util/function/Supplier.class"
+    },
+    {
+      "glob": "/java/util/function/ToDoubleFunction.class"
+    },
+    {
+      "glob": "/java/util/function/ToIntFunction.class"
+    },
+    {
+      "glob": "/java/util/function/ToLongFunction.class"
+    },
+    {
+      "glob": "/java/util/function/UnaryOperator.class"
+    },
+    {
+      "glob": "/java/util/random/RandomGenerator.class"
+    },
+    {
+      "glob": "/java/util/regex/MatchResult.class"
+    },
+    {
+      "glob": "/java/util/regex/Matcher.class"
+    },
+    {
+      "glob": "/java/util/regex/Pattern.class"
+    },
+    {
+      "glob": "/java/util/stream/BaseStream.class"
+    },
+    {
+      "glob": "/java/util/stream/Collector.class"
+    },
+    {
+      "glob": "/java/util/stream/Collector/Characteristics.class"
+    },
+    {
+      "glob": "/java/util/stream/DoubleStream$Builder.class"
+    },
+    {
+      "glob": "/java/util/stream/DoubleStream$DoubleMapMultiConsumer.class"
+    },
+    {
+      "glob": "/java/util/stream/DoubleStream.class"
+    },
+    {
+      "glob": "/java/util/stream/Gatherer$Downstream.class"
+    },
+    {
+      "glob": "/java/util/stream/Gatherer$Integrator$Greedy.class"
+    },
+    {
+      "glob": "/java/util/stream/Gatherer$Integrator.class"
+    },
+    {
+      "glob": "/java/util/stream/Gatherer.class"
+    },
+    {
+      "glob": "/java/util/stream/IntStream$Builder.class"
+    },
+    {
+      "glob": "/java/util/stream/IntStream$IntMapMultiConsumer.class"
+    },
+    {
+      "glob": "/java/util/stream/IntStream.class"
+    },
+    {
+      "glob": "/java/util/stream/LongStream$Builder.class"
+    },
+    {
+      "glob": "/java/util/stream/LongStream$LongMapMultiConsumer.class"
+    },
+    {
+      "glob": "/java/util/stream/LongStream.class"
+    },
+    {
+      "glob": "/java/util/stream/Stream$Builder.class"
+    },
+    {
+      "glob": "/java/util/stream/Stream.class"
+    },
+    {
+      "glob": "/java/util/zip/ZipEntry.class"
+    },
+    {
+      "glob": "/java/util/zip/ZipFile.class"
+    },
+    {
+      "glob": "/javax/security/auth/Subject.class"
+    },
+    {
+      "glob": "/joptsimple/OptionParser.class"
+    },
+    {
+      "glob": "/org/apache/commons/io/output/DeferredFileOutputStream.class"
+    },
+    {
+      "glob": "/org/capnproto/MessageBuilder.class"
+    },
+    {
+      "glob": "/org/capnproto/MessageReader.class"
+    },
+    {
+      "glob": "/org/capnproto/PrimitiveList$Byte$Builder.class"
+    },
+    {
+      "glob": "/org/capnproto/PrimitiveList$Byte$Reader.class"
+    },
+    {
+      "glob": "/org/capnproto/PrimitiveList$Int$Builder.class"
+    },
+    {
+      "glob": "/org/capnproto/PrimitiveList$Int$Reader.class"
+    },
+    {
+      "glob": "/org/capnproto/ReaderOptions.class"
+    },
+    {
+      "glob": "/org/capnproto/SegmentBuilder.class"
+    },
+    {
+      "glob": "/org/capnproto/SegmentReader.class"
+    },
+    {
+      "glob": "/org/capnproto/StructList$Builder.class"
+    },
+    {
+      "glob": "/org/capnproto/StructList$Factory.class"
+    },
+    {
+      "glob": "/org/capnproto/StructList$Reader.class"
+    },
+    {
+      "glob": "/org/capnproto/StructReader.class"
+    },
+    {
+      "glob": "/org/capnproto/StructSize.class"
+    },
+    {
+      "glob": "/org/capnproto/Text$Builder.class"
+    },
+    {
+      "glob": "/org/capnproto/Text$Reader.class"
+    },
+    {
+      "glob": "/org/capnproto/TextList$Builder.class"
+    },
+    {
+      "glob": "/org/capnproto/TextList$Reader.class"
+    },
+    {
+      "glob": "/org/capnproto/Void.class"
+    },
+    {
+      "glob": "/org/jgrapht/GraphPath.class"
+    },
+    {
+      "glob": "/org/json/JSONObject.class"
+    },
+    {
+      "glob": "/tcl/lang/Command.class"
+    },
+    {
+      "glob": "/tcl/lang/Interp.class"
+    },
+    {
+      "glob": "/tcl/lang/TclObject.class"
+    },
+    {
+      "glob": "META-INF/native/windows64/jansi.dll"
+    },
     {
       "glob": "META-INF/services/com.sun.source.util.Plugin"
     },
@@ -195,6 +1585,1606 @@
     },
     {
       "glob": "win/amd64/libzstd-jni-1.5.5-1.dll"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/esotericsoftware/kryo/Kryo.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/esotericsoftware/kryo/io/Input.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/esotericsoftware/kryo/io/Output.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/QSignalEmitter$Signal0.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/QSignalEmitter$Signal1.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/QSignalEmitter$Signal2.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/core/QEvent.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/core/QModelIndex.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/core/QPoint.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/core/QPointF.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/core/QRect.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/core/QRectF.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/core/QSize.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QBitmap.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QBrush.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QColor.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QDockWidget.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QFileDialog$Filter.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QGraphicsItem$GraphicsItemChange.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QGraphicsItemInterface.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QGraphicsRectItem.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QGraphicsScene.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QGraphicsSceneHoverEvent.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QGraphicsSceneMouseEvent.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QImage.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QKeyEvent.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QMouseEvent.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QPainter.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QPen.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QPolygonF.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QStyleOptionGraphicsItem.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QToolBar.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QTreeWidget.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QTreeWidgetItem.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QWheelEvent.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/trolltech/qt/gui/QWidget.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/xilinx/rapidwright/edif/EDIFToken.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/xilinx/rapidwright/examples/PipelineGenerator$direction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/xilinx/rapidwright/examples/PipelineGeneratorWithRouting$direction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/xilinx/rapidwright/interchange/RouteBranchNode$RouteSegmentType.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/xilinx/rapidwright/rwroute/RWRoute$ConnectionState.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "com/xilinx/rapidwright/timing/DelayModelSource.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/BufferedInputStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/BufferedReader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/BufferedWriter.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/DataInput.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/DataInputStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/DataOutputStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/File.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/FileFilter.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/FilenameFilter.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/InputStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/OutputStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/PrintStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/PrintWriter.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/Reader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/io/Writer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/AbstractStringBuilder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Appendable.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Boolean.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/CharSequence.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Class.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/ClassLoader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Double.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Enum.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Float.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Integer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Iterable.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Long.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Module.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/ModuleLayer$Controller.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/ModuleLayer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Object.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Package.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Runnable.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Short.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/StackTraceElement.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/String.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/StringBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/StringBuilder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Thread$Builder$OfPlatform.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Thread$Builder$OfVirtual.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Thread$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Thread$State.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Thread$UncaughtExceptionHandler.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Thread.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/ThreadGroup.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/Throwable.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/annotation/Annotation.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/AddressLayout.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/Arena.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/GroupLayout.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/MemoryLayout.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/MemoryLayout/PathElement.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/MemorySegment$Scope.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/MemorySegment.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/PaddingLayout.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/SequenceLayout.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/StructLayout.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/UnionLayout.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout$OfBoolean.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout$OfByte.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout$OfChar.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout$OfDouble.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout$OfFloat.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout$OfInt.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout$OfLong.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout$OfShort.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/foreign/ValueLayout.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/MethodHandle.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/MethodHandleInfo.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/MethodHandles$Lookup.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/MethodHandles/Lookup/ClassOption.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/MethodType.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/TypeDescriptor$OfField.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/TypeDescriptor$OfMethod.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/VarHandle$AccessMode.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/invoke/VarHandle.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/Configuration.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/ModuleDescriptor$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/ModuleDescriptor$Exports.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/ModuleDescriptor$Opens.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/ModuleDescriptor$Provides.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/ModuleDescriptor$Requires.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/ModuleDescriptor$Version.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/ModuleDescriptor.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/module/ModuleFinder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/AnnotatedType.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/Constructor.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/Field.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/GenericDeclaration.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/Member.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/Method.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/RecordComponent.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/Type.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/lang/reflect/TypeVariable.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/math/BigInteger.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/ContentHandler.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/ContentHandlerFactory.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/FileNameMap.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/Proxy$Type.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/Proxy.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/SocketAddress.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/URI.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/URL.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/URLConnection.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/URLStreamHandler.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/net/URLStreamHandlerFactory.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/Buffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/ByteBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/ByteOrder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/CharBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/DoubleBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/FloatBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/IntBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/LongBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/MappedByteBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/ShortBuffer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/AsynchronousFileChannel.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/Channel.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/CompletionHandler.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/FileChannel$MapMode.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/FileChannel.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/FileLock.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/ReadableByteChannel.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/SeekableByteChannel.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/channels/WritableByteChannel.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/charset/Charset.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/charset/CharsetDecoder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/charset/CharsetEncoder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/charset/CoderResult.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/charset/CodingErrorAction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/AccessMode.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/CopyOption.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/DirectoryStream$Filter.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/DirectoryStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/FileStore.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/FileSystem.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/LinkOption.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/OpenOption.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/Path.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/PathMatcher.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/WatchEvent/Kind.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/WatchEvent/Modifier.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/WatchKey.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/WatchService.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/Watchable.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/attribute/BasicFileAttributes.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/attribute/FileAttribute.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/attribute/FileAttributeView.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/attribute/FileStoreAttributeView.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/attribute/FileTime.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/attribute/GroupPrincipal.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/attribute/UserPrincipal.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/attribute/UserPrincipalLookupService.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/nio/file/spi/FileSystemProvider.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/AccessControlContext.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/CodeSigner.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/CodeSource.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/DomainCombiner.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/Permission.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/PermissionCollection.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/Principal.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/PrivilegedAction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/PrivilegedExceptionAction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/ProtectionDomain.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/Provider$Service.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/Provider.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/PublicKey.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/Timestamp.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/cert/CertPath.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/security/cert/Certificate.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/text/AttributedCharacterIterator$Attribute.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/text/AttributedCharacterIterator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/text/FieldPosition.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/text/Format$Field.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/text/Format.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/text/ParsePosition.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/Clock.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/DayOfWeek.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/Duration.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/Instant.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/LocalDate.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/LocalDateTime.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/LocalTime.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/Month.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/OffsetDateTime.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/OffsetTime.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/Period.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/ZoneId.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/ZoneOffset.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/ZonedDateTime.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/chrono/ChronoLocalDate.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/chrono/ChronoLocalDateTime.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/chrono/ChronoPeriod.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/chrono/ChronoZonedDateTime.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/chrono/Chronology.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/chrono/Era.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/chrono/IsoChronology.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/chrono/IsoEra.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/format/DateTimeFormatter.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/format/DecimalStyle.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/format/FormatStyle.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/format/ResolverStyle.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/format/TextStyle.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/ChronoField.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/ChronoUnit.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/Temporal.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/TemporalAccessor.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/TemporalAdjuster.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/TemporalAmount.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/TemporalField.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/TemporalQuery.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/TemporalUnit.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/temporal/ValueRange.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/zone/ZoneOffsetTransition.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/time/zone/ZoneRules.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/ArrayList.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Collection.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Comparator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Date.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Deque.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/DoubleSummaryStatistics.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/EnumSet.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Enumeration.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/HashMap.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/HashSet.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/IntSummaryStatistics.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Iterator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/LinkedHashMap.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/List.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/ListIterator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Locale$Category.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Locale$FilteringMode.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Locale$IsoCountryCode.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Locale.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/LongSummaryStatistics.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Map$Entry.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Map.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/NavigableMap.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/NavigableSet.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Optional.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/OptionalDouble.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/OptionalInt.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/OptionalLong.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/PrimitiveIterator$OfDouble.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/PrimitiveIterator$OfInt.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/PrimitiveIterator$OfLong.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/PriorityQueue.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Random.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/SequencedCollection.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/SequencedMap.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/SequencedSet.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Set.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/SortedMap.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/SortedSet.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Spliterator$OfDouble.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Spliterator$OfInt.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Spliterator$OfLong.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Spliterator$OfPrimitive.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/Spliterator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/TreeMap.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/concurrent/Callable.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/concurrent/ExecutorService.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/concurrent/Future$State.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/concurrent/Future.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/concurrent/RunnableFuture.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/concurrent/ThreadFactory.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/concurrent/TimeUnit.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/concurrent/atomic/AtomicInteger.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/BiConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/BiFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/BiPredicate.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/BinaryOperator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/Consumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/DoubleBinaryOperator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/DoubleConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/DoubleFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/DoublePredicate.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/DoubleSupplier.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/DoubleToIntFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/DoubleToLongFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/DoubleUnaryOperator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/Function.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/IntBinaryOperator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/IntConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/IntFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/IntPredicate.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/IntSupplier.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/IntToDoubleFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/IntToLongFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/IntUnaryOperator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/LongBinaryOperator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/LongConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/LongFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/LongPredicate.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/LongSupplier.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/LongToDoubleFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/LongToIntFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/LongUnaryOperator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/ObjDoubleConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/ObjIntConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/ObjLongConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/Predicate.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/Supplier.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/ToDoubleFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/ToIntFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/ToLongFunction.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/function/UnaryOperator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/random/RandomGenerator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/regex/MatchResult.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/regex/Matcher.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/regex/Pattern.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/BaseStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/Collector.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/Collector/Characteristics.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/DoubleStream$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/DoubleStream$DoubleMapMultiConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/DoubleStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/Gatherer$Downstream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/Gatherer$Integrator$Greedy.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/Gatherer$Integrator.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/Gatherer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/IntStream$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/IntStream$IntMapMultiConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/IntStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/LongStream$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/LongStream$LongMapMultiConsumer.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/LongStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/Stream$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/stream/Stream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/zip/ZipEntry.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "java/util/zip/ZipFile.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "javax/security/auth/Subject.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "joptsimple/OptionParser.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/apache/commons/io/output/DeferredFileOutputStream.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/MessageBuilder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/MessageReader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/PrimitiveList$Byte$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/PrimitiveList$Byte$Reader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/PrimitiveList$Int$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/PrimitiveList$Int$Reader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/ReaderOptions.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/SegmentBuilder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/SegmentReader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/StructList$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/StructList$Factory.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/StructList$Reader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/StructReader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/StructSize.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/Text$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/Text$Reader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/TextList$Builder.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/TextList$Reader.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/capnproto/Void.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/jgrapht/GraphPath.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "org/json/JSONObject.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "tcl/lang/Command.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "tcl/lang/Interp.class"
+    },
+    {
+      "module": "java.base",
+      "glob": "tcl/lang/TclObject.class"
     },
     {
       "module": "jdk.compiler",
