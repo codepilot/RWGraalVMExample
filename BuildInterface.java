@@ -39,6 +39,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.List;
@@ -60,14 +61,123 @@ import java.lang.classfile.Signature.TypeParam;
 
 @SuppressWarnings({"preview","deprecation"})
 public class BuildInterface {
-  private static int CEntryPointCounter = 1;
-  private final static SortedSet<String> classSet = new TreeSet<>();
-  private final static SortedMap<String, Set<AccessFlag>> classAccessFlagsMap = new TreeMap<>();
-  private final static SortedSet<String> nonloadingClassSet = new TreeSet<>();
-  private final static SortedSet<ClassModel> classModels = new TreeSet<ClassModel>((ClassModel s1, ClassModel s2) -> s1.thisClass().asInternalName().compareTo(s2.thisClass().asInternalName()));
-  private final static SortedSet<ClassModel> missingClassSet = new TreeSet<ClassModel>((ClassModel s1, ClassModel s2) -> s1.thisClass().asInternalName().compareTo(s2.thisClass().asInternalName()));
+  private static Set<String> java_primitives = new TreeSet<>(Arrays.asList(
+    "boolean",
+    "int",
+    "byte",
+    "char",
+    "short",
+    "float",
+    "long",
+    "double"
+  ));
 
-  public static int getRank(ClassDesc desc) {
+  private static Set<String> cpp_keywords = new TreeSet<>(Arrays.asList(
+    "alignas",
+    "alignof",
+    "and",
+    "and_eq",
+    "asm",
+    "atomic_cancel",
+    "atomic_commit",
+    "atomic_noexcept",
+    "auto",
+    "bitand",
+    "bitor",
+    "bool",
+    "break",
+    "case",
+    "catch",
+    "char",
+    "char8_t",
+    "char16_t",
+    "char32_t",
+    "class",
+    "compl",
+    "concept",
+    "const",
+    "consteval",
+    "constexpr",
+    "constinit",
+    "const_cast",
+    "continue",
+    "contract_assert",
+    "co_await",
+    "co_return",
+    "co_yield",
+    "decltype",
+    "default",
+    "delete",
+    "do",
+    "double",
+    "dynamic_cast",
+    "else",
+    "enum",
+    "explicit",
+    "export",
+    "extern",
+    "false",
+    "float",
+    "for",
+    "friend",
+    "goto",
+    "if",
+    "inline",
+    "int",
+    "long",
+    "mutable",
+    "namespace",
+    "new",
+    "noexcept",
+    "not",
+    "not_eq",
+    "nullptr",
+    "operator",
+    "or",
+    "or_eq",
+    "private",
+    "protected",
+    "public",
+    "reflexpr",
+    "register",
+    "reinterpret_cast",
+    "requires",
+    "return",
+    "short",
+    "signed",
+    "sizeof",
+    "static",
+    "static_assert",
+    "static_cast",
+    "struct",
+    "switch",
+    "synchronized",
+    "template",
+    "this",
+    "thread_local",
+    "throw",
+    "true",
+    "try",
+    "typedef",
+    "typeid",
+    "typename",
+    "union",
+    "unsigned",
+    "using",
+    "virtual",
+    "void",
+    "volatile",
+    "wchar_t",
+    "while",
+    "xor",
+    "xor_eq"
+  ));
+
+  private static int CEntryPointCounter = 1;
+  private final static SortedMap<ClassDesc, Set<AccessFlag>> classAccessFlagsMap = new TreeMap<>((ClassDesc s1, ClassDesc s2) -> s1.descriptorString().compareTo(s2.descriptorString()));
+  private final static SortedMap<ClassDesc, ClassModel> classMap = new TreeMap<>((ClassDesc s1, ClassDesc s2) -> s1.descriptorString().compareTo(s2.descriptorString()));
+
+  static int getRank(ClassDesc desc) {
     int rank = 0;
     while (desc.isArray()) {
       rank++;
@@ -76,7 +186,7 @@ public class BuildInterface {
     return rank;
   }
 
-  public static ClassDesc getBaseComponentType(ClassDesc desc) {
+  static ClassDesc getBaseComponentType(ClassDesc desc) {
     int rank = 0;
     while (desc.isArray()) {
       rank++;
@@ -85,7 +195,141 @@ public class BuildInterface {
     return desc;
   }
 
-  private static void jarPath(final String jp) throws IOException {
+  static void addClassModel(final ClassModel classModel, final boolean filterRWJar) {
+    final ClassDesc classDesc = classModel.thisClass().asSymbol();
+    final String classDisplayName = classDesc.displayName();
+    final AccessFlags accessFlags = classModel.flags();
+
+    // final String classNameJava = entry.getName()
+    //   .substring(0, entry.getName().length() - 6)
+    //   .replace('/', '.');
+
+    if(classDesc.packageName().length() == 0) return;
+
+    final String classNameJava = classDesc.packageName() + "." + classDesc.displayName();
+
+    classAccessFlagsMap.put(classDesc, accessFlags.flags());
+
+    for(final InnerClassesAttribute innerClasses: classModel.findAttributes(Attributes.innerClasses())) {
+      for(final InnerClassInfo innerClassInfo: innerClasses.classes()) {
+        final ClassEntry outerClassEntry = innerClassInfo.outerClass().orElse(null);
+        final ClassEntry innerClassEntry = innerClassInfo.innerClass();
+        final ClassDesc innerClassDesc = innerClassEntry.asSymbol();
+        final String innerClassJavaName = innerClassEntry.asInternalName().replace('/', '.').replace('$', '.');
+
+        classAccessFlagsMap.putIfAbsent(innerClassDesc, innerClassInfo.flags());
+        // final boolean printBool = innerClassJavaName.equals("com.xilinx.rapidwright.rwroute.CUFRpartitionTree.PartitionBBox");
+        final boolean printBool = innerClassInfo.has(AccessFlag.STATIC);
+        // if(printBool) {
+        //   System.out.println(
+        //     "innerClassInfoFlags: 0x" + Integer.toHexString(innerClassInfo.flagsMask()) +
+        //     ", " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()) +
+        //     " [-] innerName: " + innerClassInfo.innerName() +
+        //     ", innerClass: " + innerClassEntry +
+        //     ", innerClassJavaName: " + innerClassJavaName +
+        //     ", outerClassEntry: " + outerClassEntry
+        //   );
+        // }
+
+        // if(classNameJava.equals(innerClassJavaName)) {
+        //   return innerClassInfo.flags();
+        // }
+      }
+    }      
+
+    if(filterRWJar) {
+      if(!classNameJava.startsWith("com.xilinx.rapidwright.")) {
+        // System.out.println("!startsWith 'com.xilinx.rapidwright.' "+ classNameJava + ", classDesc.packageName(): '" + classDesc.packageName() + "', classDesc.displayName(): '" + classDesc.displayName() + "'");
+        return;
+      }
+
+      if(classNameJava.startsWith("com.xilinx.rapidwright.rwroute.")) {
+        // System.out.println("startsWith 'com.xilinx.rapidwright.rwroute.' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.startsWith("com.xilinx.rapidwright.gui.")) {
+        // System.out.println("startsWith 'com.xilinx.rapidwright.gui.' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.startsWith("com.xilinx.rapidwright.examples.")) {
+        // System.out.println("startsWith 'com.xilinx.rapidwright.examples.'" + classNameJava);
+        return;
+      }
+
+      if(classNameJava.startsWith("com.xilinx.rapidwright.placer.handplacer.")) {
+        // System.out.println("startsWith 'com.xilinx.rapidwright.placer.handplacer.' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.equals("com.xilinx.rapidwright.util.ParallelismTools")) {
+        // System.out.println("equals 'com.xilinx.rapidwright.util.ParallelismTools' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.equals("com.xilinx.rapidwright.MainEntrypoint")) {
+        // System.out.println("equals 'com.xilinx.rapidwright.MainEntrypoint' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.equals("com.xilinx.rapidwright.StandaloneEntrypoint")) {
+        // System.out.println("equals 'com.xilinx.rapidwright.StandaloneEntrypoint' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.GUIPBlock")) {
+        // System.out.println("equals 'com.xilinx.rapidwright.design.blocks.GUIPBlock' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.PBlockGenerator")) {
+        // System.out.println("equals 'com.xilinx.rapidwright.design.blocks.PBlockGenerator' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.BlockView")) {
+        // System.out.println("equals 'com.xilinx.rapidwright.design.blocks.BlockView' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.startsWith("com.xilinx.rapidwright.device.browser.")) {
+        // System.out.println("startsWith 'com.xilinx.rapidwright.device.browser.' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.startsWith("com.xilinx.rapidwright.debug.")) {
+        // System.out.println("startsWith 'com.xilinx.rapidwright.debug.' " + classNameJava);
+        return;
+      }
+
+      if(classNameJava.startsWith("com.xilinx.rapidwright.interchange.")) {
+        // System.out.println("startsWith 'com.xilinx.rapidwright.interchange.' " + classNameJava);
+        return;
+      }
+    }
+
+    if(accessFlags.has(AccessFlag.PRIVATE)) {
+      // System.out.println("PRIVATE " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()));
+      return;
+    }
+
+    if(!accessFlags.has(AccessFlag.PUBLIC)) {
+      // System.out.println("!PUBLIC " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()));
+      return;
+    }
+
+    if(!inner_class_is_public(classModel)) {
+      // System.out.println("!inner_class_is_public " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()));
+      return;
+    }
+
+    if(classMap.put(classDesc, classModel) != null) {
+      System.out.println("classModel duplicated " + classNameJava);
+    }
+  }
+
+  static void jarPath(final String jp) throws IOException {
     final Path currentPath = Paths.get(jp).toAbsolutePath();
     final String abs_jp = "jar:file:" + currentPath.normalize().toString() + "!/";
 
@@ -104,270 +348,34 @@ public class BuildInterface {
       
       final ClassFile cf = ClassFile.of();
       final ClassModel classModel = cf.parse(classBytes);
+
       final ClassDesc classDesc = classModel.thisClass().asSymbol();
-      final String classDisplayName = classDesc.displayName();
-      final AccessFlags accessFlags = classModel.flags();
+      if(classDesc.packageName().length() == 0) continue;
 
-      final String classNameJava = entry.getName()
-        .substring(0, entry.getName().length() - 6)
-        .replace('/', '.');
-
-      classAccessFlagsMap.put(classNameJava, accessFlags.flags());
-
-      for(final InnerClassesAttribute innerClasses: classModel.findAttributes(Attributes.innerClasses())) {
-        for(final InnerClassInfo innerClassInfo: innerClasses.classes()) {
-          final ClassEntry outerClassEntry = innerClassInfo.outerClass().orElse(null);
-          final ClassEntry innerClassEntry = innerClassInfo.innerClass();
-          final ClassDesc innerClassDesc = innerClassEntry.asSymbol();
-          final String innerClassJavaName = innerClassEntry.asInternalName().replace('/', '.').replace('$', '.');
-
-          classAccessFlagsMap.putIfAbsent(innerClassJavaName, innerClassInfo.flags());
-          // final boolean printBool = innerClassJavaName.equals("com.xilinx.rapidwright.rwroute.CUFRpartitionTree.PartitionBBox");
-          final boolean printBool = innerClassInfo.has(AccessFlag.STATIC);
-          if(printBool) {
-            System.out.println(
-              "innerClassInfoFlags: 0x" + Integer.toHexString(innerClassInfo.flagsMask()) +
-              ", " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()) +
-              " [-] innerName: " + innerClassInfo.innerName() +
-              ", innerClass: " + innerClassEntry +
-              ", innerClassJavaName: " + innerClassJavaName +
-              ", outerClassEntry: " + outerClassEntry
-            );
-          }
-
-          // if(classNameJava.equals(innerClassJavaName)) {
-          //   return innerClassInfo.flags();
-          // }
-        }
-      }      
-
-      if(!classNameJava.startsWith("com.xilinx.rapidwright.")) {
-        // System.out.println("!startsWith 'com.xilinx.rapidwright.' "+ classNameJava);
-        continue;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.rwroute.")) {
-        System.out.println("startsWith 'com.xilinx.rapidwright.rwroute.' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.gui.")) {
-        System.out.println("startsWith 'com.xilinx.rapidwright.gui.' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.examples.")) {
-        System.out.println("startsWith 'com.xilinx.rapidwright.examples.'" + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.placer.handplacer.")) {
-        System.out.println("startsWith 'com.xilinx.rapidwright.placer.handplacer.' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.util.ParallelismTools")) {
-        System.out.println("equals 'com.xilinx.rapidwright.util.ParallelismTools' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.MainEntrypoint")) {
-        System.out.println("equals 'com.xilinx.rapidwright.MainEntrypoint' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.StandaloneEntrypoint")) {
-        System.out.println("equals 'com.xilinx.rapidwright.StandaloneEntrypoint' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.GUIPBlock")) {
-        System.out.println("equals 'com.xilinx.rapidwright.design.blocks.GUIPBlock' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.PBlockGenerator")) {
-        System.out.println("equals 'com.xilinx.rapidwright.design.blocks.PBlockGenerator' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.equals("com.xilinx.rapidwright.design.blocks.BlockView")) {
-        System.out.println("equals 'com.xilinx.rapidwright.design.blocks.BlockView' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.device.browser.")) {
-        System.out.println("startsWith 'com.xilinx.rapidwright.device.browser.' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.debug.")) {
-        System.out.println("startsWith 'com.xilinx.rapidwright.debug.' " + classNameJava);
-        continue;
-      }
-
-      if(classNameJava.startsWith("com.xilinx.rapidwright.interchange.")) {
-        System.out.println("startsWith 'com.xilinx.rapidwright.interchange.' " + classNameJava);
-        continue;
-      }
-
-      if(accessFlags.has(AccessFlag.PRIVATE)) {
-        System.out.println("PRIVATE " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()));
-        continue;
-      }
-
-      if(!accessFlags.has(AccessFlag.PUBLIC)) {
-        System.out.println("!PUBLIC " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()));
-        continue;
-      }
-
-      if(!inner_class_is_public(classModel)) {
-        System.out.println("!inner_class_is_public " + classNameJava + " 0x" + Integer.toHexString(accessFlags.flagsMask()));
-        continue;
-      }
-
-      if(!classModels.add(classModel)) {
-        System.out.println("classModel duplicated " + classNameJava);
-      }
-
-      if(!classSet.add(classNameJava)) {
-        System.out.println("classNameJava duplicated " + classNameJava);
-      }
-
+      addClassModel(classModel, true);
     }
   }
 
-  static void method_throws(final FileWriter fw_java, final String class_name, final MethodModel methodModel) throws IOException {
+  static void method_throws(final FileWriter fw_java, final MethodModel methodModel) throws IOException {
     final String methodModel_name = methodModel.methodName().stringValue();
     for(final Attribute<?> attribute: methodModel.attributes()) {
       if(attribute instanceof ExceptionsAttribute) {
         ExceptionsAttribute exceptionsAttribute = (ExceptionsAttribute)attribute;
-        // System.out.println("  // " + class_name + "." + methodModel_name + " " + attribute.attributeName().stringValue() + " ");
         fw_java.write(" throws");
+        int entryCounter = 0;
         for(ClassEntry classEntryException: exceptionsAttribute.exceptions()) {
           ClassDesc classDescException = classEntryException.asSymbol();
+          if(entryCounter > 0) fw_java.write(" , ");
           fw_java.write(" " + classDescException.packageName() + "." + classDescException.displayName() + "");
+          entryCounter++;
         }
       }
     }
   }
 
-  static void write_field_static_primitive(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final FieldModel fieldModel) throws IOException {
+  static void write_field(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_def_hpp, final FileWriter fw_impl_hpp, final FieldModel fieldModel) throws IOException {
     final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
     final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-    final String field_name = fieldModel.fieldName().stringValue();
-    final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
-    final AccessFlags accessFlags = fieldModel.flags();
-    final int CEntryPointID = CEntryPointCounter++;
-  
-    fw_java.write("\n");
-    fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static " + field_type_class_desc.displayName() + " id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
-    fw_java.write("    return " + classNameJava + "." + field_name +";\n");
-    fw_java.write("  }\n");
-
-    if(accessFlags.has(AccessFlag.FINAL)) {
-      fw_hpp.write("    inline static const auto " + field_name + "{id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get())};\n");
-    } else {
-      fw_hpp.write("\n");
-      fw_hpp.write("    __forceinline static auto " + field_name + "() noexcept {\n");
-      fw_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get());\n");
-      fw_hpp.write("    }\n");
-    }
-  }
-
-  static void write_field_static_object(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final FieldModel fieldModel) throws IOException {
-    final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
-    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-    final String field_name = fieldModel.fieldName().stringValue();
-    final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
-    final AccessFlags accessFlags = fieldModel.flags();
-    final int CEntryPointID = CEntryPointCounter++;
-
-    fw_java.write("\n");
-    fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
-    fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(" + classNameJava + "." + field_name +");\n");
-    fw_java.write("    return handle;\n");
-    fw_java.write("  }\n");
-
-    final String java_class_name = field_type_class_desc.packageName() + "." + field_type_class_desc.displayName().replace('$', '.');
-    final String cpp_class_name = java_class_name.replace(".", "_");
-    if(cpp_class_name.startsWith("java_")) return;
-    
-    {
-    }
-    if(accessFlags.has(AccessFlag.FINAL)) {
-      // fw_hpp.write("    inline static const unique_" + cpp_class_name + " " + field_name + "{std::bit_cast<" + cpp_class_name + " *>(" + class_name + "_get_static_field_" + field_name + "(localThread.get()))};\n");
-      fw_hpp.write("\n");
-      fw_hpp.write("    __forceinline static unique_" + cpp_class_name + " STATIC_FINAL_" + field_name + "() noexcept {\n");
-      fw_hpp.write("      if constexpr (is_debug) {\n");
-      fw_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
-      fw_hpp.write("      }\n");
-      fw_hpp.write("      return unique_" + cpp_class_name + "(std::bit_cast<" + cpp_class_name + " *>(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get())));\n");
-      fw_hpp.write("    }\n");
-      fw_hpp.write("    inline static const unique_" + cpp_class_name + " " + field_name + "{STATIC_FINAL_" + field_name + "()};\n");
-    } else {
-      fw_hpp.write("\n");
-      fw_hpp.write("    __forceinline static unique_" + cpp_class_name + " " + field_name + "() noexcept {\n");
-      fw_hpp.write("      if constexpr (is_debug) {\n");
-      fw_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
-      fw_hpp.write("      }\n");
-      fw_hpp.write("      return unique_" + cpp_class_name + "(std::bit_cast<" + cpp_class_name + " *>(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get())));\n");
-      fw_hpp.write("    }\n");
-    }
-  }
-
-  static void write_field_member_primitive(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final FieldModel fieldModel) throws IOException {
-    final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
-    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-    final String field_name = fieldModel.fieldName().stringValue();
-    final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
-    final AccessFlags accessFlags = fieldModel.flags();
-    final int CEntryPointID = CEntryPointCounter++;
-
-    fw_java.write("\n");
-    fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static " + field_type_class_desc.displayName() + " id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, final ObjectHandle instance_handle) {\n");
-    fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n");
-    fw_java.write("    return instance." + field_name +";\n");
-    fw_java.write("  }\n");
-
-    fw_hpp.write("    __forceinline auto " + field_name + "() noexcept {\n");
-    fw_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(localThread.get(), this);\n");
-    fw_hpp.write("    }\n");
-  }
-
-  static void write_field_member_object(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final FieldModel fieldModel) throws IOException {
-    final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
-    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-    final String field_name = fieldModel.fieldName().stringValue();
-    final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
-    final AccessFlags accessFlags = fieldModel.flags();
-    final int CEntryPointID = CEntryPointCounter++;
-
-    fw_java.write("\n");
-    fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, final ObjectHandle instance_handle) {\n");
-    fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n");
-    fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(instance." + field_name +");\n");
-    fw_java.write("    return handle;\n");
-
-    fw_java.write("  }\n");
-
-    final String java_class_name = field_type_class_desc.packageName() + "." + field_type_class_desc.displayName();
-    final String cpp_class_name = java_class_name.replace(".", "_");
-    if(cpp_class_name.startsWith("java_")) return;
-    if(cpp_class_name.contains("$")) return;
-
-    fw_hpp.write("    __forceinline unique_" + cpp_class_name + " " + field_name + "() noexcept {\n");
-      fw_hpp.write("      return unique_" + cpp_class_name + "(std::bit_cast<" + cpp_class_name + " *>(id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(localThread.get(), this)));\n");
-    fw_hpp.write("    }\n");
-  }
-
-  static void write_field(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final FieldModel fieldModel) throws IOException {
-    final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.');
-    final String class_name = classModel.thisClass().asInternalName().replace('/', '_');
 
     final AccessFlags accessFlags = fieldModel.flags();
     if(!accessFlags.has(AccessFlag.PUBLIC)) return;
@@ -376,28 +384,97 @@ public class BuildInterface {
     final String field_name = fieldModel.fieldName().stringValue();
     if(field_name.length() <= 1) return;
 
-    fw_hpp.write("#undef " + field_name + "\n");
+    fw_def_hpp.write("#undef " + field_name + "\n");
 
     final String field_type_name = fieldModel.fieldType().stringValue();
     final ClassDesc field_type_class_desc = fieldModel.fieldTypeSymbol();
+    final int CEntryPointID = CEntryPointCounter++;
+    final String cpp_static_keyword = accessFlags.has(AccessFlag.STATIC)?"inline static ":"";
+    final String static_descriptor = accessFlags.has(AccessFlag.STATIC)?"static_":"";
+    final String java_class_name = ((field_type_class_desc.packageName().length()>0)?(field_type_class_desc.packageName() + "."):"") + field_type_class_desc.displayName().replace('$', '.');
+    final String cpp_class_name = java_class_name.replace(".", "_");
+    final String java_instance_arg = accessFlags.has(AccessFlag.STATIC)?"":", final ObjectHandle instance_handle";
+    final String java_unbox_instance = accessFlags.has(AccessFlag.STATIC)?"":"    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n";
+    final String java_field_base = accessFlags.has(AccessFlag.STATIC)?classNameJava:"instance";
+    final String cpp_getter_specifier = accessFlags.has(AccessFlag.STATIC)?"noexcept":"const noexcept";
+    final String cpp_func_static = accessFlags.has(AccessFlag.STATIC)?"static ":"";
+    final String cpp_this_arg = accessFlags.has(AccessFlag.STATIC)?"":", std::bit_cast<void *>(this)";
+
+    String cpp_type = cpp_class_name;
+    if(cpp_type.equals("boolean")) cpp_type = "int";
+    if(cpp_type.equals("char")) cpp_type = "short";
+    if(!field_type_class_desc.isPrimitive()) cpp_type = "unique_" + cpp_type;
+
+    final String cpp_putter = accessFlags.has(AccessFlag.FINAL)?"":", put = put_" + field_name;
 
     if(field_type_class_desc.isPrimitive()) {
-      if(accessFlags.has(AccessFlag.STATIC)) {
-        write_field_static_primitive(classModel, fw_java, fw_hpp, fieldModel);
-      } else {
-        write_field_member_primitive(classModel, fw_java, fw_hpp, fieldModel);
+      fw_java.write("\n");
+      fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+      fw_java.write("  public static " + field_type_class_desc.displayName() + " id_" + CEntryPointID + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(IsolateThread thread" + java_instance_arg + ") {\n");
+      fw_java.write(java_unbox_instance);
+      fw_java.write("    return " + java_field_base + "." + field_name +";\n");
+      fw_java.write("  }\n");
+
+      fw_impl_hpp.write("    __forceinline " + cpp_func_static + cpp_type + " get_" + field_name + "() " + cpp_getter_specifier + " {\n");
+      fw_impl_hpp.write("      return id_" + CEntryPointID + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(localThread.get()" + cpp_this_arg + ");\n");
+      fw_impl_hpp.write("    }\n");
+
+      if(accessFlags.has(AccessFlag.STATIC) && accessFlags.has(AccessFlag.FINAL)) {   
+        fw_impl_hpp.write("    inline static const " + cpp_type + " " + field_name + "{id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get())};\n");
       }
     }
     if(field_type_class_desc.isClassOrInterface()) {
       if(accessFlags.has(AccessFlag.STATIC)) {
-        write_field_static_object(classModel, fw_java, fw_hpp, fieldModel);
+        fw_java.write("\n");
+        fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+        fw_java.write("  @CTypedef(name = \"" + cpp_class_name + " *\")\n");
+        fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(IsolateThread thread) {\n");
+        fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(" + classNameJava + "." + field_name +");\n");
+        fw_java.write("    return handle;\n");
+        fw_java.write("  }\n");
+
+        if(accessFlags.has(AccessFlag.FINAL)) {
+          // fw_impl_hpp.write("    inline static const unique_" + cpp_class_name + " " + field_name + "{std::bit_cast<" + cpp_class_name + " *>(" + class_name + "_get_static_field_" + field_name + "(localThread.get()))};\n");
+          fw_impl_hpp.write("\n");
+          fw_impl_hpp.write("    __forceinline static unique_" + cpp_class_name + " get_" + field_name + "() noexcept {\n");
+          fw_impl_hpp.write("      if constexpr (is_debug) {\n");
+          fw_impl_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
+          fw_impl_hpp.write("      }\n");
+          fw_impl_hpp.write("      return unique_" + cpp_class_name + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
+          fw_impl_hpp.write("    }\n");
+          fw_impl_hpp.write("    inline static const unique_" + cpp_class_name + " " + field_name + "{get_" + field_name + "()};\n");
+        } else {
+          fw_impl_hpp.write("\n");
+          fw_impl_hpp.write("    __forceinline static unique_" + cpp_class_name + " get_" + field_name + "() noexcept {\n");
+          fw_impl_hpp.write("      if constexpr (is_debug) {\n");
+          fw_impl_hpp.write("        std::println(\"unique_" + cpp_class_name + "\");\n");
+          fw_impl_hpp.write("      }\n");
+          fw_impl_hpp.write("      return unique_" + cpp_class_name + "(id_" + CEntryPointID + "_" + class_name + "_get_static_field_" + field_name + "(localThread.get()));\n");
+          fw_impl_hpp.write("    }\n");
+        }
       } else {
-        write_field_member_object(classModel, fw_java, fw_hpp, fieldModel);
+        fw_java.write("\n");
+        fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
+        fw_java.write("  @CTypedef(name = \"" + cpp_class_name + " *\")\n");
+        fw_java.write("  public static ObjectHandle id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(IsolateThread thread, final ObjectHandle instance_handle) {\n");
+        fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n");
+        fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(instance." + field_name +");\n");
+        fw_java.write("    return handle;\n");
+        fw_java.write("  }\n");
+
+        fw_impl_hpp.write("    __forceinline unique_" + cpp_class_name + " get_" + field_name + "() const noexcept {\n");
+        fw_impl_hpp.write("      return unique_" + cpp_class_name + "(id_" + CEntryPointID + "_" + class_name + "_get_field_" + field_name + "(localThread.get(), std::bit_cast<void *>(this)));\n");
+        fw_impl_hpp.write("    }\n");
       }
     }
+
+    // if(!accessFlags.has(AccessFlag.STATIC)) {      
+    //   fw_impl_hpp.write("__declspec(property(get = get_" + static_descriptor+ field_name + cpp_putter + ")) " + cpp_static_keyword + " " + cpp_type + " " + field_name + ";\n");
+    // }
+
   }
 
-  static void write_constructor(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
+  static void write_constructor(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_def_hpp, final FileWriter fw_impl_hpp, final MethodModel methodModel) throws IOException {
     final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
     final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
     final AccessFlags methodAccessFlags = methodModel.flags();
@@ -411,14 +488,14 @@ public class BuildInterface {
     }
     final int CEntryPointID = CEntryPointCounter++;
 
-    final String cEntryPoint = "id_constructor_" + CEntryPointID + "_" + class_name;
+    final String cEntryPoint = "constructor_" + CEntryPointID + "_" + class_name;
 
     fw_java.write("\n");
-    fw_java.write("  @CEntryPoint(name = \"" + cEntryPoint + "\") /* method: 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + ", class: 0x" + Integer.toHexString(classAccessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static ObjectHandle id_constructor_" + CEntryPointID + "_" + class_name + "(IsolateThread thread");
+    fw_java.write("  @CEntryPoint(name = \"" + cEntryPoint + "\") @CTypedef(name = \"" + class_name + " *\") /* method: 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + ", class: 0x" + Integer.toHexString(classAccessFlags.flagsMask()) + " */\n");
+    fw_java.write("  public static ObjectHandle " + cEntryPoint + "(IsolateThread thread");
     write_java_arguments(fw_java, methodModel);
     fw_java.write(")");
-    method_throws(fw_java, class_name, methodModel);
+    method_throws(fw_java, methodModel);
     fw_java.write(" {\n");
     write_java_arguments_unboxing(fw_java, methodModel);
     fw_java.write("    final " + classNameJava + " instance = new " + classNameJava + "(");
@@ -428,23 +505,23 @@ public class BuildInterface {
     fw_java.write("    return handle;\n");
     fw_java.write("  }\n");
 
-    fw_hpp.write("    __forceinline static unique_" + class_name + " constructor(");
-    write_hpp_arguments(fw_hpp, methodModel);
-    fw_hpp.write(") noexcept {\n");
-    write_hpp_arguments_unboxing(fw_hpp, methodModel);
-    fw_hpp.write("      return unique_" + class_name + "(std::bit_cast<" + class_name + " *>(" + cEntryPoint + "(localThread.get()");
-    write_hpp_method_params(fw_hpp, methodModel);
-    fw_hpp.write(")) );\n");
-    fw_hpp.write("    }\n");
-    fw_hpp.write("\n");
+    fw_impl_hpp.write("    __forceinline static unique_" + class_name + " constructor(");
+    write_hpp_arguments(fw_impl_hpp, methodModel);
+    fw_impl_hpp.write(") noexcept {\n");
+    write_hpp_arguments_unboxing(fw_impl_hpp, methodModel);
+    fw_impl_hpp.write("      return unique_" + class_name + "(" + cEntryPoint + "(localThread.get()");
+    write_hpp_method_params(fw_impl_hpp, methodModel);
+    fw_impl_hpp.write("));\n");
+    fw_impl_hpp.write("    }\n");
+    fw_impl_hpp.write("\n");
   }
 
-  static void write_hpp_method_params(final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
+  static void write_hpp_method_params(final FileWriter fw, final MethodModel methodModel) throws IOException {
     final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
     int param_counter = 0;
     for(ClassDesc param: methodTypeDesc.parameterArray()) {
       final int param_id = param_counter++;
-      fw_hpp.write(", param_" + param_id);
+      fw.write(", param_" + param_id);
     }
   }
 
@@ -471,45 +548,81 @@ public class BuildInterface {
         // System.out.println("        " + param.displayName());
       }
       if(param.isClassOrInterface()) {
-        fw_java.write(", " + "final ObjectHandle param_handle_" + param_id);
+        final String class_name = ((param.packageName().length() > 0?(param.packageName() + "."):"") + param.displayName()).replace('.', '_');
+        if(class_name.equals("java_lang_String")) {
+          fw_java.write(", " + "@CConst final CCharPointer param_handle_" + param_id);
+        } else {
+          fw_java.write(", " + "@CTypedef(name = \"OBJECT_HANDLE_" + class_name + "\") final ObjectHandle param_handle_" + param_id);
+        }
         // System.out.println("        " + param.packageName() + "." + param.displayName());
       }
       if(param.isArray()) {
-        fw_java.write(", " + "final ObjectHandle param_handle_" + param_id);
+
+        final int rank = getRank(param);
+        final ClassDesc base = getBaseComponentType(param);
+        if(base.packageName().length() > 0) {
+          final String class_name = base.packageName().replace(".", "_") + "_" + base.displayName().replace(".", "_");
+          fw_java.write(", " + "@CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + class_name + "\") final ObjectHandle param_handle_" + param_id);
+        } else {
+          final String class_name = base.displayName().replace(".", "_");
+          fw_java.write(", " + "@CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" +  class_name + "\") final ObjectHandle param_handle_" + param_id);
+        }
+        
         // System.out.println("        " + param.displayName());
       }
     }
   }
 
-  static void write_hpp_arguments(final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
+  static String replaceLast(String text, String target, String replacement) {
+    final int index = text.lastIndexOf(target);
+    if (index == -1) return text;
+    return text.substring(0, index) + replacement + text.substring(index + target.length());
+  }
+
+  static void write_hpp_arguments(final FileWriter fw, final MethodModel methodModel) throws IOException {
     final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
     int param_counter = 0;
     for(ClassDesc param: methodTypeDesc.parameterArray()) {
       final int param_id = param_counter++;
 
       if(param_id > 0) {
-        fw_hpp.write(", ");
+        fw.write(", ");
       }
 
       if(param.isPrimitive()) {
         if(param.displayName().equals("boolean")) {
-          fw_hpp.write("const bool param_" + param_id);
+          fw.write("const bool param_" + param_id);
+        } else if(param.displayName().equals("byte")) {
+          fw.write("const uint8_t param_" + param_id);
         } else {
-          fw_hpp.write("const " + param.displayName() + " param_" + param_id);
+          fw.write("const " + param.displayName() + " param_" + param_id);
         }
         // System.out.println("        " + param.displayName());
       }
+
       if(param.isClassOrInterface()) {
-        final String paramJavaClass = (param.packageName() + "." + param.displayName()).replace('$', '.');
-        fw_hpp.write("unique_" + paramJavaClass.replace('.', '_') + " param_handle_" + param_id);
-        // fw_hpp.write("void* param_" + param_id);
+        final String paramJavaClass = (param.packageName() + "." + param.displayName());
+        if(paramJavaClass.equals("java.lang.String")) {
+          fw.write("const char* param_handle_" + param_id);
+        } else {
+          fw.write("::" + param.packageName().replace(".", "::") + "::" + param.displayName() + " &param_handle_" + param_id);
+        }
+        // fw_impl_hpp.write("void* param_" + param_id);
       }
+
       if(param.isArray()) {
         final int rank = getRank(param);
         final ClassDesc base = getBaseComponentType(param);
-        final String paramJavaClass = (base.packageName() + ((base.packageName().length() > 0)?".":"") + base.displayName()).replace('$', '.');
-        final String param_class = paramJavaClass.replace('.', '_');
-        fw_hpp.write("unique_rank_" + rank + "_" + param_class + " param_handle_" + param_id);
+        if(base.packageName().length() > 0) {
+          final String baseJavaName = "::" + ((base.packageName() + ".") + base.displayName()).replace(".", "::");
+          fw.write(replaceLast(baseJavaName, "::", "::RANK_" + rank + "_") + " &param_handle_" + param_id);
+            // "::" + base.packageName().replace(".", "::") + "::RANK_" + rank + "_" + base.displayName() + " &param_handle_" + param_id);
+        } else {
+          fw.write("RANK_" + rank + "_" + base.displayName() + " &param_handle_" + param_id);
+        }
+        // final String paramJavaClass = (base.packageName() + ((base.packageName().length() > 0)?".":"") + base.displayName()).replace('$', '.');
+        // final String param_class = paramJavaClass.replace('.', '_');
+        // fw.write("RANK_" + rank + "_" + param_class + " &param_handle_" + param_id);
         // System.out.println("        " + param.displayName());
       }
     }
@@ -531,7 +644,11 @@ public class BuildInterface {
 
       if(param.isClassOrInterface()) {
         final String param_type_str = (param.packageName() + "." + param.displayName()).replace('$', '.');
-        fw_java.write("    final " + param_type_str + " param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + ");\n");
+        if(param_type_str.equals("java.lang.String")) {
+          fw_java.write("    final String param_" + param_id + " = CTypeConversion.toJavaString(param_handle_" + param_id + ");\n");
+        } else {
+          fw_java.write("    final " + param_type_str + " param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + ");\n");
+        }
       }
       if(param.isArray()) {
         final int rank = getRank(param);
@@ -550,14 +667,14 @@ public class BuildInterface {
     }
   }
 
-  static void write_hpp_arguments_unboxing(final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
+  static void write_hpp_arguments_unboxing(final FileWriter fw, final MethodModel methodModel) throws IOException {
     final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
     int param_counter = 0;
     for(final Attribute<?> attribute: methodModel.attributes()) {
-      fw_hpp.write("/* " + attribute + " */\n");
+      fw.write("/* " + attribute + " */\n");
       if(attribute instanceof SignatureAttribute) {
         SignatureAttribute signatureAttribute = (SignatureAttribute)attribute;
-        fw_hpp.write("/* SignatureAttribute " + signatureAttribute + " */");
+        fw.write("/* SignatureAttribute " + signatureAttribute + " */");
       }
     }
 
@@ -566,16 +683,20 @@ public class BuildInterface {
 
       if(param.isClassOrInterface()) {
         final String param_type_str = (param.packageName() + "." + param.displayName()).replace('$', '.');
-        fw_hpp.write("      void* /* " + param_type_str + " */ param_" + param_id + "{param_handle_" + param_id + ".get()};\n");
+        if(param_type_str.equals("java.lang.String")) {
+          fw.write("      const char* /* " + param_type_str + " */ param_" + param_id + "{param_handle_" + param_id + "};\n");
+        } else {
+          fw.write("      auto /* " + param_type_str + " */ param_" + param_id + "{param_handle_" + param_id + ".ObjectHandle};\n");
+        }
       }
       if(param.isArray()) {
         ClassDesc componentDesc = param.componentType();
         if(componentDesc.packageName().length() > 0) {
           final String param_type_str = (componentDesc.packageName() + "." + componentDesc.displayName()).replace('$', '.');
-          fw_hpp.write("      void* /* " + param_type_str + "[] */ param_" + param_id + " = param_handle_" + param_id + ".get(); // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
+          fw.write("      auto /* " + param_type_str + "[] */ param_" + param_id + " = param_handle_" + param_id + ".ObjectHandle; // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
         } else {
           final String param_type_str = (componentDesc.displayName()).replace('$', '.');
-          fw_hpp.write("      void* /* " + param_type_str + "[] */ param_" + param_id + " = param_handle_" + param_id + ".get(); // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
+          fw.write("      auto /* " + param_type_str + "[] */ param_" + param_id + " = param_handle_" + param_id + ".ObjectHandle; // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
         }
       }
     }
@@ -585,8 +706,11 @@ public class BuildInterface {
     if(classDesc.isPrimitive()) return true;
     if(classDesc.isClassOrInterface()) {
       final String javaClass = (classDesc.packageName() + "." + classDesc.displayName()).replace('$', '.');
-      final Set<AccessFlag> accessFlags = classAccessFlagsMap.get(javaClass);
-      if(accessFlags == null) return true;
+      final Set<AccessFlag> accessFlags = classAccessFlagsMap.get(classDesc);
+      if(accessFlags == null) {
+        // System.out.println("accessFlags == null for " + javaClass);
+        return true;
+      }
       return accessFlags.contains(AccessFlag.PUBLIC);
     }
     if(classDesc.isArray()) {
@@ -634,15 +758,20 @@ public class BuildInterface {
     return true;
   }
 
-  static void write_method(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_hpp, final MethodModel methodModel) throws IOException {
+  static void write_method(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_decl_hpp, final FileWriter fw_impl_hpp, final MethodModel methodModel) throws IOException {
     final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
-    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    final String class_name = classModel.thisClass().asInternalName().replace('/', '_');
     final ClassDesc classDesc = classModel.thisClass().asSymbol();
     final String classDisplayName = classDesc.displayName();
     final AccessFlags classAccessFlags = classModel.flags();
 
-    final String methodModel_name = methodModel.methodName().stringValue();
-    if(methodModel_name.length() <= 1) return;
+    final String java_methodModel_name = methodModel.methodName().stringValue();
+    if(java_methodModel_name.length() <= 1) return;
+
+    String cpp_methodModel_name = methodModel.methodName().stringValue();
+    if(cpp_keywords.contains(cpp_methodModel_name)) {
+      cpp_methodModel_name = cpp_methodModel_name + "_";
+    }
 
     final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
     final ClassDesc returnTypeDesc = methodTypeDesc.returnType();
@@ -652,39 +781,54 @@ public class BuildInterface {
     if(methodAccessFlags.has(AccessFlag.SYNTHETIC)) return;
     if(!are_method_types_fully_public(methodModel)) return;
 
-    if(methodModel_name.equals("<init>")) {
-      write_constructor(classModel, fw_java, fw_hpp, methodModel);
+    if(java_methodModel_name.equals("<init>")) {
+      // write_constructor(classModel, fw_java, fw_def_hpp, fw_impl_hpp, methodModel);
       return;
     }
 
     final String return_keyword = returnTypeDesc.displayName().equals("void")?"":"return ";
-    final String java_return_type = returnTypeDesc.isPrimitive()?returnTypeDesc.displayName():"ObjectHandle";
+    String java_return_type = returnTypeDesc.isPrimitive()?returnTypeDesc.displayName():"ObjectHandle";
     final String java_return_translation_start = returnTypeDesc.isPrimitive()?"":"ObjectHandles.getGlobal().create(";
     final String java_return_translation_end = returnTypeDesc.isPrimitive()?"":")";
     final String cpp_return_type = returnTypeDesc.displayName().equals("void")?"void":"auto";
 
     final int arrayRank = getRank(returnTypeDesc);
     final ClassDesc arrayBase = getBaseComponentType(returnTypeDesc);
-    final String arrayBaseJavaClass = (arrayBase.packageName() + ((arrayBase.packageName().length() > 0)?".":"") + arrayBase.displayName()).replace('$', '.');
+    final String arrayBaseJavaClass = (arrayBase.packageName() + ((arrayBase.packageName().length() > 0)?".":"") + arrayBase.displayName());
     final String array_base_class = arrayBaseJavaClass.replace('.', '_');
-    final String cpp_array_type = "rank_" + arrayRank + "_" + array_base_class;
+    final String cpp_array_type = "RANK_" + arrayRank + "_" + array_base_class;
 
-    final String cpp_class_name = returnTypeDesc.isArray()?cpp_array_type:(((returnTypeDesc.packageName().length() > 0)?(returnTypeDesc.packageName() + "."):"") + returnTypeDesc.displayName()).replace('.', '_').replace('$', '_');
-    final String cpp_return_translation_start = returnTypeDesc.isPrimitive()?"":"unique_" + cpp_class_name + "(std::bit_cast<" + cpp_class_name + " *>(";
-    final String cpp_return_translation_end = returnTypeDesc.isPrimitive()?"":"))";
+    final String cpp_class_name = returnTypeDesc.isArray()?cpp_array_type:(((returnTypeDesc.packageName().length() > 0)?(returnTypeDesc.packageName() + "."):"") + returnTypeDesc.displayName()).replace('.', '_');
+    String cpp_return_translation_start = returnTypeDesc.isPrimitive()?"":("::" + returnTypeDesc.packageName().replace(".", "::") + "::" + returnTypeDesc.displayName() + "(");
+    if(returnTypeDesc.isArray()) {
+      if(arrayBase.isPrimitive()) {
+        cpp_return_translation_start = "::RANK_" + arrayRank + "_" + arrayBase.displayName() + "(";
+      } else {
+        cpp_return_translation_start = "::" + arrayBase.packageName().replace(".", "::") + "::RANK_" + arrayRank + "_" +  arrayBase.displayName() + "(";
+      }
+    }
+    final String cpp_return_translation_end = returnTypeDesc.isPrimitive()?"":")";
     final int CEntryPointID = CEntryPointCounter++;
 
 
-    final String cEntryPoint = "id_" + CEntryPointID + "_" + class_name + "_" + methodModel_name;
-    final String java_this_keyword = methodAccessFlags.has(AccessFlag.STATIC)?"":", final ObjectHandle handle_this";
+    final String cEntryPoint = "id_" + CEntryPointID + "_" + class_name + "_" + java_methodModel_name;
+    final String java_this_keyword = methodAccessFlags.has(AccessFlag.STATIC)?"":", @CTypedef(name = \"OBJECT_HANDLE_" + class_name + "\") final ObjectHandle handle_this";
     final String java_method_base = methodAccessFlags.has(AccessFlag.STATIC)?classNameJava:"instance";
 
     fw_java.write("  @CEntryPoint(name = \"" + cEntryPoint + "\") /* 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static " + java_return_type + " id_" + CEntryPointID + "_" + methodModel_name + "(IsolateThread thread" + java_this_keyword);
+    if(!returnTypeDesc.isPrimitive()) {
+      if(cpp_class_name.equals("java_lang_String")) {
+        fw_java.write("@CTypedef(name = \"char *\")\n");
+        java_return_type = "CCharPointer";
+      } else {
+        fw_java.write("@CTypedef(name = \"OBJECT_HANDLE_" + cpp_class_name + "\")\n");
+      }
+    }
+    fw_java.write("  public static " + java_return_type + " " + cEntryPoint + "(IsolateThread thread" + java_this_keyword);
 
     write_java_arguments(fw_java, methodModel);
     fw_java.write(")");
-    method_throws(fw_java, class_name, methodModel);
+    method_throws(fw_java, methodModel);
     fw_java.write(" {\n");
     if(!methodAccessFlags.has(AccessFlag.STATIC)) {
       fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(handle_this);\n");
@@ -692,23 +836,50 @@ public class BuildInterface {
 
     write_java_arguments_unboxing(fw_java, methodModel);
 
-    fw_java.write("    " + return_keyword + java_return_translation_start + java_method_base + "." + methodModel_name + "(");
-    write_java_method_params(fw_java, methodModel);
-    fw_java.write(")" + java_return_translation_end + " ;\n");
+    if(cpp_class_name.equals("java_lang_String")) {
+      fw_java.write("    final String retval = " + java_method_base + "." + java_methodModel_name + "(");
+      write_java_method_params(fw_java, methodModel);
+      fw_java.write(");\n");
+      fw_java.write("    final byte[] bytes = retval.getBytes();\n");
+      fw_java.write("    final UnsignedWord size = WordFactory.unsigned(bytes.length + 1);\n");
+      fw_java.write("    final CCharPointer buffer = UnmanagedMemory.malloc(size);\n");
+      fw_java.write("    CTypeConversion.toCString(retval, buffer, size);\n");
+      fw_java.write("    return buffer;\n");
+    } else {
+      fw_java.write("    " + return_keyword + java_return_translation_start + java_method_base + "." + java_methodModel_name + "(");
+      write_java_method_params(fw_java, methodModel);
+      fw_java.write(")" + java_return_translation_end + " ;\n");
+    }
     fw_java.write("  }\n");
 
     final String cpp_static_keyword = methodAccessFlags.has(AccessFlag.STATIC)?"static ":"";
-    final String cpp_this_keyword = methodAccessFlags.has(AccessFlag.STATIC)?"":", this";
+    final String cpp_this_keyword = methodAccessFlags.has(AccessFlag.STATIC)?"":", ObjectHandle";
 
-    fw_hpp.write("    __forceinline " + cpp_static_keyword + cpp_return_type + " " + methodModel_name + "(");
-    write_hpp_arguments(fw_hpp, methodModel);
-    fw_hpp.write(") noexcept {\n");
-    write_hpp_arguments_unboxing(fw_hpp, methodModel);
-    fw_hpp.write("      " + return_keyword + cpp_return_translation_start + cEntryPoint + "(localThread.get()" + cpp_this_keyword);
-    write_hpp_method_params(fw_hpp, methodModel);
-    fw_hpp.write(")" + cpp_return_translation_end + ";\n");
-    fw_hpp.write("    }\n");
-    fw_hpp.write("\n");
+    if(cpp_class_name.equals("java_lang_String")) {
+      fw_decl_hpp.write("    __forceinline " + cpp_static_keyword + "const char *" + " " + cpp_methodModel_name + "(");
+      fw_impl_hpp.write("    __forceinline " + "const char *" + " " + classDisplayName + "::" + cpp_methodModel_name + "(");
+    } else  {
+      fw_decl_hpp.write("    __forceinline " + cpp_static_keyword + cpp_return_type + " " + cpp_methodModel_name + "(");
+      fw_impl_hpp.write("    __forceinline " + cpp_return_type + " " + classDisplayName + "::" + cpp_methodModel_name + "(");
+    }
+
+    write_hpp_arguments(fw_decl_hpp, methodModel);
+    write_hpp_arguments(fw_impl_hpp, methodModel);
+
+    fw_decl_hpp.write(") noexcept;\n");
+    fw_impl_hpp.write(") noexcept {\n");
+    write_hpp_arguments_unboxing(fw_impl_hpp, methodModel);
+    if(cpp_class_name.equals("java_lang_String")) {
+      fw_impl_hpp.write("      " + return_keyword + cEntryPoint + "(localThread.get()" + cpp_this_keyword);
+      write_hpp_method_params(fw_impl_hpp, methodModel);
+      fw_impl_hpp.write(")" + ";\n");
+    } else {
+      fw_impl_hpp.write("      " + return_keyword + cpp_return_translation_start + cEntryPoint + "(localThread.get()" + cpp_this_keyword);
+      write_hpp_method_params(fw_impl_hpp, methodModel);
+      fw_impl_hpp.write(")" + cpp_return_translation_end + ";\n");
+    }
+    fw_impl_hpp.write("    }\n");
+    fw_impl_hpp.write("\n");
   }
 
   static boolean inner_class_is_public(final ClassModel classModel) {
@@ -767,12 +938,113 @@ public class BuildInterface {
     return accessFlags.flags();
   }
 
-  static void make_class_file(final FileWriter java_file_list, final FileWriter hpp_file_list, final ClassModel classModel) throws IOException {
-    final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
-    final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-    final ClassDesc classDesc = classModel.thisClass().asSymbol();
+  // static void make_class_from_ClassDesc(final FileWriter java_file_list, final FileWriter hpp_frwd_list, final FileWriter hpp_decl_list, final FileWriter hpp_impl_list, final ClassDesc classDesc) throws IOException {
+  //   final String classNameJava = (classDesc.packageName() + "." + classDesc.displayName()); //classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
+  //   final String class_name = classNameJava.replace('.', '_');
+  //   final String classDisplayName = classDesc.displayName();
+  //   final String namespace = classDesc.packageName().replace(".", "::");
+
+  //   final String str_fw_java = "./src/com/xilinx/rapidwright/experimental/" + class_name + ".java";
+  //   final FileWriter fw_java = new FileWriter(str_fw_java);
+
+  //   final Path str_fw_java_path = Paths.get(str_fw_java).toAbsolutePath();
+
+  //   java_file_list.write(str_fw_java_path.normalize().toString() + "\n");
+
+  //   final FileWriter fw_frwd_hpp = new FileWriter("./build/experimental/ClassDesc_frwd_" + class_name + ".hpp");
+  //   final FileWriter fw_decl_hpp = new FileWriter("./build/experimental/ClassDesc_decl_" + class_name + ".hpp");
+  //   final FileWriter fw_impl_hpp = new FileWriter("./build/experimental/ClassDesc_impl_" + class_name + ".hpp");
+  //   hpp_frwd_list.write("#include <ClassDesc_frwd_" + class_name + ".hpp>\n");
+  //   hpp_decl_list.write("#include <ClassDesc_decl_" + class_name + ".hpp>\n");
+  //   hpp_impl_list.write("#include <ClassDesc_impl_" + class_name + ".hpp>\n");
+
+  //   fw_decl_hpp.write("#pragma once\n\n");
+  //   fw_decl_hpp.write("#include <optional>\n");
+  //   fw_decl_hpp.write("#include <utility>\n");
+  //   fw_decl_hpp.write("#include <cstdlib>\n");
+  //   fw_decl_hpp.write("\n");
+
+  //   fw_impl_hpp.write("#pragma once\n\n");
+  //   fw_impl_hpp.write("#include <optional>\n");
+  //   fw_impl_hpp.write("#include <utility>\n");
+  //   fw_impl_hpp.write("#include <cstdlib>\n");
+  //   fw_impl_hpp.write("\n");
+
+  //   fw_frwd_hpp.write("struct OBJECT_" + class_name + ";\n");
+  //   fw_frwd_hpp.write("struct OBJECT_RANK_1_" + class_name + ";\n");
+  //   fw_frwd_hpp.write("struct OBJECT_RANK_2_" + class_name + ";\n");
+  //   fw_frwd_hpp.write("using OBJECT_HANDLE_" + class_name + " = OBJECT_" + class_name + "*;\n");
+  //   fw_frwd_hpp.write("using OBJECT_HANDLE_RANK_1_" + class_name + " = OBJECT_RANK_1_" + class_name + "*;\n");
+  //   fw_frwd_hpp.write("using OBJECT_HANDLE_RANK_2_" + class_name + " = OBJECT_RANK_2_" + class_name + "*;\n");
+
+  //   fw_frwd_hpp.write("namespace " + namespace + " {\n");
+  //   fw_decl_hpp.write("namespace " + namespace + " {\n");
+  //   fw_impl_hpp.write("namespace " + namespace + " {\n");
+
+  //   fw_frwd_hpp.write("  struct " + classDisplayName + ";\n");
+  //   fw_frwd_hpp.write("  struct RANK_1_" + classDisplayName + ";\n");
+  //   fw_frwd_hpp.write("  struct RANK_2_" + classDisplayName + ";\n");
+  //   fw_decl_hpp.write("  struct " + classDisplayName + " {\n");
+
+  //   fw_decl_hpp.write("    /* deleted default constructor */\n");
+  //   fw_decl_hpp.write("    " + classDisplayName + "() = delete;\n\n");
+
+  //   fw_decl_hpp.write("    /* deleted copy constructor */\n");
+  //   fw_decl_hpp.write("    " + classDisplayName + "(const " + classDisplayName + "& other) = delete;\n\n");
+    
+  //   fw_decl_hpp.write("    /* deleted move constructor */\n");
+  //   fw_decl_hpp.write("    " + classDisplayName + "(" + classDisplayName + "&& other) = delete;\n\n");
+
+  //   fw_decl_hpp.write("    /* deleted copy assignment */\n");
+  //   fw_decl_hpp.write("    " + classDisplayName + "& operator=(const " + classDisplayName + "& other) = delete;\n\n");
+
+  //   fw_decl_hpp.write("    /* deleted move assignment */\n");
+  //   fw_decl_hpp.write("    " + classDisplayName + "& operator=(" + classDisplayName + "&& other) = delete;\n\n");
+
+  //   fw_decl_hpp.write("    ~" + classDisplayName + "();\n\n");
+
+  //   fw_java.write("package com.xilinx.rapidwright.experimental;\n");
+  //   fw_java.write("\n");
+
+  //   fw_java.write("import org.graalvm.nativeimage.ObjectHandle;\n");
+  //   fw_java.write("import org.graalvm.nativeimage.ObjectHandles;\n");
+  //   fw_java.write("import org.graalvm.nativeimage.IsolateThread;\n");
+  //   fw_java.write("import org.graalvm.nativeimage.UnmanagedMemory;\n");
+  //   fw_java.write("import org.graalvm.nativeimage.c.function.CEntryPoint;\n");
+  //   fw_java.write("import org.graalvm.nativeimage.c.type.CCharPointer;\n");
+  //   fw_java.write("import org.graalvm.nativeimage.c.type.CTypeConversion;\n");
+  //   fw_java.write("import org.graalvm.nativeimage.c.type.CTypedef;\n");
+  //   fw_java.write("import org.graalvm.nativeimage.c.type.CConst;\n");
+  //   fw_java.write("import org.graalvm.word.UnsignedWord;\n");
+  //   fw_java.write("import org.graalvm.word.WordFactory;\n");
+  //   fw_java.write("\n");
+
+  //   fw_java.write("public class " + class_name + " {\n");
+
+  //   fw_java.write("\n");
+
+  //   fw_java.write("}\n");
+  //   fw_decl_hpp.write("  };\n");
+
+  //   fw_frwd_hpp.write("};\n");
+  //   fw_decl_hpp.write("};\n");
+  //   fw_impl_hpp.write("};\n");
+
+  //   fw_java.close();
+  //   fw_frwd_hpp.close();
+  //   fw_decl_hpp.close();
+  //   fw_impl_hpp.close();
+  // }
+
+  static void make_class(final FileWriter java_file_list, final FileWriter hpp_frwd_list, final FileWriter hpp_decl_list, final FileWriter hpp_impl_list, final ClassDesc classDesc, final ClassModel classModel) throws IOException {
+    // final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
+    final String classNameJava = (classDesc.packageName() + "." + classDesc.displayName()); //classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
+
+    // final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    final String class_name = classNameJava.replace('.', '_');
+
     final String classDisplayName = classDesc.displayName();
-    final AccessFlags accessFlags = classModel.flags();
+    final String namespace = classDesc.packageName().replace(".", "::");
 
     final String str_fw_java = "./src/com/xilinx/rapidwright/experimental/" + class_name + ".java";
     final FileWriter fw_java = new FileWriter(str_fw_java);
@@ -781,38 +1053,129 @@ public class BuildInterface {
 
     java_file_list.write(str_fw_java_path.normalize().toString() + "\n");
 
-    final FileWriter fw_hpp = new FileWriter("./build/experimental/" + class_name + ".hpp");
-    hpp_file_list.write("#include <" + class_name + ".hpp>\n");
+    final FileWriter fw_frwd_hpp = new FileWriter("./build/experimental/ClassModel_frwd_" + class_name + ".hpp");
+    final FileWriter fw_decl_hpp = new FileWriter("./build/experimental/ClassModel_decl_" + class_name + ".hpp");
+    final FileWriter fw_impl_hpp = new FileWriter("./build/experimental/ClassModel_impl_" + class_name + ".hpp");
+    hpp_frwd_list.write("#include <ClassModel_frwd_" + class_name + ".hpp>\n");
+    hpp_decl_list.write("#include <ClassModel_decl_" + class_name + ".hpp>\n");
+    hpp_impl_list.write("#include <ClassModel_impl_" + class_name + ".hpp>\n");
 
-    fw_hpp.write("#pragma once\n");
-    fw_hpp.write("\n");
+    fw_decl_hpp.write("#pragma once\n\n");
+    fw_decl_hpp.write("#include <optional>\n");
+    fw_decl_hpp.write("#include <utility>\n");
+    fw_decl_hpp.write("#include <cstdlib>\n");
+    fw_decl_hpp.write("\n");
 
-    fw_hpp.write("#include <optional>\n");
-    fw_hpp.write("#include <utility>\n");
-    fw_hpp.write("#include <cstdlib>\n");
-    fw_hpp.write("\n");
+    fw_impl_hpp.write("#pragma once\n\n");
+    fw_impl_hpp.write("#include <optional>\n");
+    fw_impl_hpp.write("#include <utility>\n");
+    fw_impl_hpp.write("#include <cstdlib>\n");
+    fw_impl_hpp.write("\n");
 
-    fw_hpp.write("// This is the header file created by native-image (Graal)\n");
-    fw_hpp.write("#include <librapidwright.h>\n");
-    fw_hpp.write("\n");
+    // fw_frwd_hpp.write("struct OBJECT_" + class_name + ";\n");
+    // fw_frwd_hpp.write("struct OBJECT_RANK_1_" + class_name + ";\n");
+    // fw_frwd_hpp.write("struct OBJECT_RANK_2_" + class_name + ";\n");
+    fw_frwd_hpp.write("using OBJECT_HANDLE_" + class_name + " = intptr_t;\n");
+    fw_frwd_hpp.write("using OBJECT_HANDLE_RANK_1_" + class_name + " = intptr_t;\n");
+    fw_frwd_hpp.write("using OBJECT_HANDLE_RANK_2_" + class_name + " = intptr_t;\n");
 
-    fw_hpp.write("namespace GraalVM_Native_Image {\n");
-      
-    fw_hpp.write("  struct " + class_name + " {\n");
-    fw_hpp.write("    " + class_name + "() = delete;\n");
-    fw_hpp.write("\n");
+    fw_frwd_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+    fw_decl_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+    fw_impl_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
 
-    fw_hpp.write("    " + class_name + "(const " + class_name + "& other) = delete;\n");
-    fw_hpp.write("\n");
+    fw_frwd_hpp.write("  struct " + classDisplayName + ";\n");
+    // fw_frwd_hpp.write("  struct RANK_1_" + classDisplayName + ";\n");
+    // fw_frwd_hpp.write("  struct RANK_2_" + classDisplayName + ";\n");
 
-    fw_hpp.write("    " + class_name + "& operator=(const " + class_name + "& other) = delete;\n");
-    fw_hpp.write("\n");
+    decl_array_rank(fw_frwd_hpp, fw_decl_hpp, fw_impl_hpp, classDisplayName, class_name, 1);
+    decl_array_rank(fw_frwd_hpp, fw_decl_hpp, fw_impl_hpp, classDisplayName, class_name, 2);
 
-    fw_hpp.write("    __forceinline " + class_name + "(" + class_name + "&& other) = delete;\n");
+    // fw_decl_hpp.write("  struct RANK_1_" + classDisplayName + " {\n");
 
-    fw_hpp.write("    __forceinline " + class_name + "& operator=(" + class_name + "&& other) = delete;\n");
+    // fw_decl_hpp.write("    OBJECT_HANDLE_RANK_1_" + class_name + " ObjectHandle;\n\n");
 
-    fw_hpp.write("\n");
+    // fw_decl_hpp.write("    /* deleted default constructor */\n");
+    // fw_decl_hpp.write("    RANK_1_" + classDisplayName + "() = delete;\n\n");
+
+    // fw_decl_hpp.write("    /* deleted copy constructor */\n");
+    // fw_decl_hpp.write("    RANK_1_" + classDisplayName + "(const RANK_1_" + classDisplayName + "& other) = delete;\n\n");
+    
+    // fw_decl_hpp.write("    /* deleted move constructor */\n");
+    // fw_decl_hpp.write("    RANK_1_" + classDisplayName + "(RANK_1_" + classDisplayName + "&& other) = delete;\n\n");
+
+    // fw_decl_hpp.write("    /* deleted copy assignment */\n");
+    // fw_decl_hpp.write("    RANK_1_" + classDisplayName + "& operator=(const RANK_1_" + classDisplayName + "& other) = delete;\n\n");
+
+    // fw_decl_hpp.write("    /* deleted move assignment */\n");
+    // fw_decl_hpp.write("    RANK_1_" + classDisplayName + "& operator=(RANK_1_" + classDisplayName + "&& other) = delete;\n\n");
+
+    // fw_decl_hpp.write("    /* explicit handle constructor */\n");
+    // fw_decl_hpp.write("    explicit RANK_1_" + classDisplayName + "(OBJECT_HANDLE_RANK_1_" + class_name + " ObjectHandle);\n\n");
+
+    // fw_decl_hpp.write("    /* destructor */\n");
+    // fw_decl_hpp.write("    ~RANK_1_" + classDisplayName + "();\n");
+    // fw_decl_hpp.write("  };\n\n");
+
+    // fw_decl_hpp.write("  struct RANK_2_" + classDisplayName + " {\n");
+
+    // fw_decl_hpp.write("    OBJECT_HANDLE_RANK_2_" + class_name + " ObjectHandle;\n\n");
+
+    // fw_decl_hpp.write("    /* deleted default constructor */\n");
+    // fw_decl_hpp.write("    RANK_2_" + classDisplayName + "() = delete;\n\n");
+
+    // fw_decl_hpp.write("    /* deleted copy constructor */\n");
+    // fw_decl_hpp.write("    RANK_2_" + classDisplayName + "(const RANK_2_" + classDisplayName + "& other) = delete;\n\n");
+    
+    // fw_decl_hpp.write("    /* deleted move constructor */\n");
+    // fw_decl_hpp.write("    RANK_2_" + classDisplayName + "(RANK_2_" + classDisplayName + "&& other) = delete;\n\n");
+
+    // fw_decl_hpp.write("    /* deleted copy assignment */\n");
+    // fw_decl_hpp.write("    RANK_2_" + classDisplayName + "& operator=(const RANK_2_" + classDisplayName + "& other) = delete;\n\n");
+
+    // fw_decl_hpp.write("    /* deleted move assignment */\n");
+    // fw_decl_hpp.write("    RANK_2_" + classDisplayName + "& operator=(RANK_2_" + classDisplayName + "&& other) = delete;\n\n");
+
+    // fw_decl_hpp.write("    /* explicit handle constructor */\n");
+    // fw_decl_hpp.write("    explicit RANK_2_" + classDisplayName + "(OBJECT_HANDLE_RANK_2_" + class_name + " ObjectHandle);\n\n");
+
+    // fw_decl_hpp.write("    /* destructor */\n");
+    // fw_decl_hpp.write("    ~RANK_2_" + classDisplayName + "();\n");
+    // fw_decl_hpp.write("  };\n\n");
+
+
+    fw_decl_hpp.write("  struct " + classDisplayName + " {\n");
+
+    fw_decl_hpp.write("    OBJECT_HANDLE_" + class_name + " ObjectHandle;\n\n");
+
+    fw_decl_hpp.write("    /* deleted default constructor */\n");
+    fw_decl_hpp.write("    " + classDisplayName + "() = delete;\n\n");
+
+    fw_decl_hpp.write("    /* deleted copy constructor */\n");
+    fw_decl_hpp.write("    " + classDisplayName + "(const " + classDisplayName + "& other) = delete;\n\n");
+    
+    fw_decl_hpp.write("    /* deleted move constructor */\n");
+    fw_decl_hpp.write("    " + classDisplayName + "(" + classDisplayName + "&& other) = delete;\n\n");
+
+    fw_decl_hpp.write("    /* deleted copy assignment */\n");
+    fw_decl_hpp.write("    " + classDisplayName + "& operator=(const " + classDisplayName + "& other) = delete;\n\n");
+
+    fw_decl_hpp.write("    /* deleted move assignment */\n");
+    fw_decl_hpp.write("    " + classDisplayName + "& operator=(" + classDisplayName + "&& other) = delete;\n\n");
+
+    fw_decl_hpp.write("    /* explicit handle constructor */\n");
+    fw_decl_hpp.write("    explicit " + classDisplayName + "(OBJECT_HANDLE_" + class_name + " ObjectHandle) noexcept;\n\n");
+
+    fw_decl_hpp.write("    /* destructor */\n");
+    fw_decl_hpp.write("    ~" + classDisplayName + "() noexcept;\n\n");
+
+    fw_impl_hpp.write("  __forceinline " + classDisplayName + "::" + classDisplayName + "(OBJECT_HANDLE_" + class_name + " ObjectHandle) noexcept: ObjectHandle{ObjectHandle} {\n");
+    fw_impl_hpp.write("  }\n");
+
+    fw_impl_hpp.write("  __forceinline " + classDisplayName + "::~" + classDisplayName + "() noexcept {\n");
+    fw_impl_hpp.write("    if (ObjectHandle) {\n");
+    fw_impl_hpp.write("      general_free_instance(localThread.get(), std::bit_cast<void *>(ObjectHandle));\n");
+    fw_impl_hpp.write("    }\n");
+    fw_impl_hpp.write("  }\n");
 
     fw_java.write("package com.xilinx.rapidwright.experimental;\n");
     fw_java.write("\n");
@@ -824,57 +1187,41 @@ public class BuildInterface {
     fw_java.write("import org.graalvm.nativeimage.c.function.CEntryPoint;\n");
     fw_java.write("import org.graalvm.nativeimage.c.type.CCharPointer;\n");
     fw_java.write("import org.graalvm.nativeimage.c.type.CTypeConversion;\n");
+    fw_java.write("import org.graalvm.nativeimage.c.type.CTypedef;\n");
     fw_java.write("import org.graalvm.nativeimage.c.type.CConst;\n");
     fw_java.write("import org.graalvm.word.UnsignedWord;\n");
     fw_java.write("import org.graalvm.word.WordFactory;\n");
     fw_java.write("\n");
 
-    fw_java.write("public class " + class_name + " /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */ {\n");
-
-    for(final Attribute<?> attribute: classModel.attributes()) {
-      if(attribute instanceof SignatureAttribute) {
-        SignatureAttribute signatureAttribute = (SignatureAttribute)attribute;
-        fw_java.write("  /* SignatureAttribute " + signatureAttribute.signature() + " */\n");
-        ClassSignature classSignature = signatureAttribute.asClassSignature();
-        fw_java.write("    /* signatureString " + classSignature.signatureString() + " */\n");
-        fw_java.write("    /* superclassSignature " + classSignature.superclassSignature() + " */\n");
-        fw_java.write("    /* superinterfaceSignatures " + classSignature.superinterfaceSignatures() + " */\n");
-        for(ClassTypeSig classTypeSig: classSignature.superinterfaceSignatures()) {
-          fw_java.write("      /* ClassTypeSig " + classTypeSig + " */\n");
-        }
-        fw_java.write("    /* typeParameters " + classSignature.typeParameters() + " */\n");
-        for(TypeParam typeParameter: classSignature.typeParameters()) {
-          fw_java.write("      /* TypeParam " + typeParameter + " */\n");
-        }
-      } else {
-        fw_java.write("  /* " + attribute + " */\n");
-      }
-    }
-
-    for(final ClassEntry classEntryInterface: classModel.interfaces()) {
-      fw_java.write("  /* INTERFACE " + classEntryInterface + " */\n");
-    }
+    fw_java.write("public class " + class_name + " {\n");
 
     fw_java.write("\n");
 
-    for(final FieldModel fieldModel: classModel.fields()) {
-      write_field(classModel, fw_java, fw_hpp, fieldModel);
-    }
-
-    for(final MethodModel methodModel: classModel.methods()) {
-      write_method(classModel, fw_java, fw_hpp, methodModel);
+    if(classModel != null) {
+      for(final FieldModel fieldModel: classModel.fields()) {
+        // write_field(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, fieldModel);
+      }
+  
+      for(final MethodModel methodModel: classModel.methods()) {
+        write_method(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, methodModel);
+      }
     }
 
     fw_java.write("}\n");
-    fw_hpp.write("  };\n");
-    fw_hpp.write("};\n");
+    fw_decl_hpp.write("  };\n");
+
+    fw_frwd_hpp.write("};\n");
+    fw_decl_hpp.write("};\n");
+    fw_impl_hpp.write("};\n");
 
     fw_java.close();
-    fw_hpp.close();
+    fw_frwd_hpp.close();
+    fw_decl_hpp.close();
+    fw_impl_hpp.close();
   }
 
-  static void addMissingClassFromName(final String referenceJavaClassName, final String javaClassName) throws IOException {
-    if(classSet.contains(javaClassName)) return;
+  static void addMissingClassFromName(final String referenceJavaClassName, final String javaClassName, final ClassDesc classDesc) throws IOException {
+    if(classMap.containsKey(classDesc)) return;
 
     final String resourceName = "/" + javaClassName.replace(".", "/") + ".class";
 
@@ -882,33 +1229,37 @@ public class BuildInterface {
     final InputStream theadInputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName);
 
     if(baseInputStream == null && theadInputStream == null) {
-      System.out.println("nonloading: " + referenceJavaClassName + " -> " + javaClassName);
-      nonloadingClassSet.add(javaClassName.replace('$', '.'));
+      // System.out.println("nonloading: " + referenceJavaClassName + " -> " + javaClassName);
+      classMap.put(classDesc, null);
       return;
     }
     if(baseInputStream != null) {
       final byte[] bytes = baseInputStream.readAllBytes();
       final ClassModel classModel = ClassFile.of().parse(bytes);
-      if(!missingClassSet.add(classModel)) return;
+      addClassModel(classModel, false);
+      return;
     }
     if(theadInputStream != null) {
       final byte[] bytes = theadInputStream.readAllBytes();
       final ClassModel classModel = ClassFile.of().parse(bytes);
-      if(!missingClassSet.add(classModel)) return;
+      addClassModel(classModel, false);
+      return;
     }
   }
+
   static void addMissingClassFromClassDesc(final String referenceJavaClassName, final ClassDesc classDesc) throws IOException {
     if(classDesc.isArray()) {
       final int rank = getRank(classDesc);
       final ClassDesc base = getBaseComponentType(classDesc);
-      final String javaClass = (base.packageName() + ((base.packageName().length() > 0)?".":"") + base.displayName()).replace('$', '.');
-      nonloadingClassSet.add("rank_" + rank + "_" + javaClass);
+      final String javaClassName = (base.packageName() + ((base.packageName().length() > 0)?".":"") + base.displayName()).replace('$', '.');
+      if(base.isPrimitive()) return;
+      addMissingClassFromName(referenceJavaClassName, javaClassName, base);
       return;
     }
     if(classDesc.isPrimitive()) return;
 
     final String javaClassName = classDesc.packageName() + "." + classDesc.displayName();
-    addMissingClassFromName(referenceJavaClassName, javaClassName);
+    addMissingClassFromName(referenceJavaClassName, javaClassName, classDesc);
   }
 
   static void addMissingClassFromFieldModel(final ClassModel classModel, final FieldModel fieldModel) throws IOException {
@@ -955,25 +1306,25 @@ public class BuildInterface {
   }
 
   static void addMissingClasses() throws IOException {
-    for(final ClassModel classModel: classModels) {
-      addMissingClassesFromClassModel(classModel);
-    }
+    // for(final ClassModel classModel: classModels) {
+    //   addMissingClassesFromClassModel(classModel);
+    // }
 
-    System.out.println("nonloadingClassSet:");
-    for(final String nonloadingClass: nonloadingClassSet) {
-      System.out.println("  " + nonloadingClass);
+    for(;;) {
+      SortedMap<ClassDesc, ClassModel> classMapCopy = new TreeMap<>(classMap);
+      for(final ClassModel classModel: classMapCopy.values()) {
+        if(classModel == null) continue;
+        addMissingClassesFromClassModel(classModel);
+        // System.out.println("  " + missingClass);
+      }
+      // System.out.println("classes added: " + (classMap.size() - classMapCopy.size()));
+      if(classMapCopy.size() == classMap.size()) break;
     }
-    System.out.println();
-
-    System.out.println("missingClassSet:");
-    for(final ClassModel missingClass: missingClassSet) {
-      System.out.println("  " + missingClass);
-    }
-    System.out.println();
+    // System.out.println();
     
   }
 
-  public static void general(final FileWriter java_file_list, final FileWriter hpp_file_list) throws IOException {
+  static void general(final FileWriter java_file_list) throws IOException {
     final String class_name = "general";
     final String str_fw_java = "./src/com/xilinx/rapidwright/experimental/general.java";
     final FileWriter fw_java = new FileWriter(str_fw_java);
@@ -990,6 +1341,7 @@ public class BuildInterface {
     fw_java.write("import org.graalvm.nativeimage.c.function.CEntryPoint;\n");
     fw_java.write("import org.graalvm.nativeimage.c.type.CCharPointer;\n");
     fw_java.write("import org.graalvm.nativeimage.c.type.CTypeConversion;\n");
+    fw_java.write("import org.graalvm.nativeimage.c.type.CTypedef;\n");
     fw_java.write("import org.graalvm.nativeimage.c.type.CConst;\n");
     fw_java.write("import org.graalvm.word.UnsignedWord;\n");
     fw_java.write("import org.graalvm.word.WordFactory;\n");
@@ -1004,20 +1356,36 @@ public class BuildInterface {
 
     fw_java.write("}\n");
     fw_java.close();
+  }
 
-    hpp_file_list.write("  template<typename T>\n");
-    hpp_file_list.write("  struct unique_general_destructor {\n");
-    hpp_file_list.write("    inline void operator()(T* handle) const noexcept {\n");
-    hpp_file_list.write("      if (handle) {\n");
-    hpp_file_list.write("        if constexpr (is_debug) {\n");
-    hpp_file_list.write("          std::println(std::source_location::current().function_name());\n");
-    hpp_file_list.write("        }\n");
-    hpp_file_list.write("        general_free_instance(localThread.get(), handle);\n");
-    hpp_file_list.write("      }\n");
-    hpp_file_list.write("    }\n");
-    hpp_file_list.write("  };\n");
-    hpp_file_list.write("\n");
+  static void decl_array_rank(final FileWriter fw_frwd_hpp, final FileWriter fw_decl_hpp, final FileWriter fw_impl_hpp, final String classDisplayName, final String class_name, final int rank) throws IOException {
+    fw_frwd_hpp.write("  struct RANK_" + rank + "_" + classDisplayName + ";\n");
 
+    fw_decl_hpp.write("  struct RANK_" + rank + "_" + classDisplayName + " {\n");
+
+    fw_decl_hpp.write("    OBJECT_HANDLE_RANK_" + rank + "_" + class_name + " ObjectHandle;\n\n");
+
+    fw_decl_hpp.write("    /* deleted default constructor */\n");
+    fw_decl_hpp.write("    RANK_" + rank + "_" + classDisplayName + "() = delete;\n\n");
+
+    fw_decl_hpp.write("    /* deleted copy constructor */\n");
+    fw_decl_hpp.write("    RANK_" + rank + "_" + classDisplayName + "(const RANK_" + rank + "_" + classDisplayName + "& other) = delete;\n\n");
+    
+    fw_decl_hpp.write("    /* deleted move constructor */\n");
+    fw_decl_hpp.write("    RANK_" + rank + "_" + classDisplayName + "(RANK_" + rank + "_" + classDisplayName + "&& other) = delete;\n\n");
+
+    fw_decl_hpp.write("    /* deleted copy assignment */\n");
+    fw_decl_hpp.write("    RANK_" + rank + "_" + classDisplayName + "& operator=(const RANK_" + rank + "_" + classDisplayName + "& other) = delete;\n\n");
+
+    fw_decl_hpp.write("    /* deleted move assignment */\n");
+    fw_decl_hpp.write("    RANK_" + rank + "_" + classDisplayName + "& operator=(RANK_" + rank + "_" + classDisplayName + "&& other) = delete;\n\n");
+
+    fw_decl_hpp.write("    /* explicit handle constructor */\n");
+    fw_decl_hpp.write("    explicit RANK_" + rank + "_" + classDisplayName + "(OBJECT_HANDLE_RANK_" + rank + "_" + class_name + " ObjectHandle);\n\n");
+
+    fw_decl_hpp.write("    /* destructor */\n");
+    fw_decl_hpp.write("    ~RANK_" + rank + "_" + classDisplayName + "();\n");
+    fw_decl_hpp.write("  };\n\n");
   }
 
   public static void main(final String[] args) throws IOException {
@@ -1027,67 +1395,96 @@ public class BuildInterface {
 
     final FileWriter java_file_list = new FileWriter("./build/java_file_list.txt");
 
-    final FileWriter hpp_file_list = new FileWriter("./build/experimental/ExperimentalAPI.hpp");
-    hpp_file_list.write("#pragma once\n\n");
-    hpp_file_list.write("#include <source_location>\n\n");
+    final FileWriter hpp_frwd_list = new FileWriter("./build/experimental/ExperimentalAPI_frwd.hpp");
+    final FileWriter hpp_decl_list = new FileWriter("./build/experimental/ExperimentalAPI_decl.hpp");
+    final FileWriter hpp_impl_list = new FileWriter("./build/experimental/ExperimentalAPI_impl.hpp");
 
-    hpp_file_list.write("namespace GraalVM_Native_Image {\n");
+    hpp_frwd_list.write("#pragma once\n\n");
+    hpp_decl_list.write("#pragma once\n\n");
+    hpp_impl_list.write("#pragma once\n\n");
 
-    general(java_file_list, hpp_file_list);
-
-    for(final ClassModel classModel: missingClassSet) {
-      final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-      hpp_file_list.write("  struct " + class_name + ";\n");
-    }
-    for(final ClassModel classModel: classModels) {
-      final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-      hpp_file_list.write("  struct " + class_name + ";\n");
-    }
-    for(final String nonloadingClass: nonloadingClassSet) {
-      final String class_name = nonloadingClass.replace('.', '_');
-      hpp_file_list.write("  struct " + class_name + ";\n");
+    for(final String javaPrim: java_primitives) {
+      for(int rank = 1; rank <= 2; rank++) {
+        // hpp_frwd_list.write("  struct OBJECT_RANK_" + rank + "_" + javaPrim + ";\n");
+        hpp_frwd_list.write("  using OBJECT_HANDLE_RANK_" + rank + "_" + javaPrim + " = intptr_t;\n");
+        decl_array_rank(hpp_frwd_list, hpp_decl_list, hpp_impl_list, javaPrim, javaPrim, rank);
+      }
     }
 
+    // hpp_using_list.write("template<typename T>\n");
+    // hpp_using_list.write("struct unique_general_destructor {\n");
+    // hpp_using_list.write("  inline void operator()(T* handle) const noexcept {\n");
+    // hpp_using_list.write("    if (handle) {\n");
+    // hpp_using_list.write("      if constexpr (is_debug) {\n");
+    // hpp_using_list.write("        std::println(std::source_location::current().function_name());\n");
+    // hpp_using_list.write("      }\n");
+    // hpp_using_list.write("      general_free_instance(localThread.get(), handle);\n");
+    // hpp_using_list.write("    }\n");
+    // hpp_using_list.write("  }\n");
+    // hpp_using_list.write("};\n");
+    // hpp_using_list.write("\n");
 
-    for(final ClassModel classModel: missingClassSet) {
-      final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-      hpp_file_list.write("  struct unique_" + class_name + "_destructor;\n");
-    }
-    for(final ClassModel classModel: classModels) {
-      final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-      hpp_file_list.write("  struct unique_" + class_name + "_destructor;\n");
-    }
-    for(final String nonloadingClass: nonloadingClassSet) {
-      final String class_name = nonloadingClass.replace('.', '_');
-      hpp_file_list.write("  struct unique_" + class_name + "_destructor;\n");
+    general(java_file_list);
+
+    // for(final ClassModel classModel: missingClassSet) {
+    //   final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    //   forward_define_struct(hpp_frwd_list, class_name);
+    // }
+    // for(final ClassModel classModel: classModels) {
+    //   final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    //   forward_define_struct(hpp_frwd_list, class_name);
+    // }
+    // for(final String nonloadingClass: nonloadingClassSet) {
+    //   final String class_name = nonloadingClass.replace('.', '_').replace('$', '_');
+    //   forward_define_struct(hpp_frwd_list, class_name);
+    // }
+
+    // for(final ClassModel classModel: missingClassSet) {
+    //   final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    //   hpp_structs_list.write("struct unique_" + class_name + "_destructor;\n");
+    // }
+    // for(final ClassModel classModel: classModels) {
+    //   final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    //   hpp_structs_list.write("struct unique_" + class_name + "_destructor;\n");
+    // }
+    // for(final String nonloadingClass: nonloadingClassSet) {
+    //   final String class_name = nonloadingClass.replace('.', '_');
+    //   hpp_structs_list.write("struct unique_" + class_name + "_destructor;\n");
+    // }
+
+    // for(final ClassModel classModel: missingClassSet) {
+    //   final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    //   hpp_using_list.write("using unique_" + class_name + " = unique_ObjectHandle<" + class_name + ", unique_general_destructor<" + class_name + ">>;\n");
+    // }
+
+    // for(final ClassModel classModel: classModels) {
+    //   final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
+    //   hpp_using_list.write("using unique_" + class_name + " = unique_ObjectHandle<" + class_name + ", unique_general_destructor<" + class_name + ">>;\n");
+    // }
+
+    // for(final String nonloadingClass: nonloadingClassSet) {
+    //   final String class_name = nonloadingClass.replace('.', '_');
+    //   hpp_using_list.write("using unique_" + class_name + " = unique_ObjectHandle<" + class_name + ", unique_general_destructor<" + class_name + ">>;\n");
+    // }
+
+    for(final Entry<ClassDesc, ClassModel> entry: classMap.entrySet()) {
+      make_class(java_file_list, hpp_frwd_list, hpp_decl_list, hpp_impl_list, entry.getKey(), entry.getValue());
     }
 
-    for(final ClassModel classModel: missingClassSet) {
-      final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-      hpp_file_list.write("  using unique_" + class_name + " = std::unique_ptr<" + class_name + ", unique_general_destructor<" + class_name + ">>;\n");
-    }
-
-    for(final ClassModel classModel: classModels) {
-      final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
-      hpp_file_list.write("  using unique_" + class_name + " = std::unique_ptr<" + class_name + ", unique_general_destructor<" + class_name + ">>;\n");
-    }
-
-    for(final String nonloadingClass: nonloadingClassSet) {
-      final String class_name = nonloadingClass.replace('.', '_');
-      hpp_file_list.write("  using unique_" + class_name + " = std::unique_ptr<" + class_name + ", unique_general_destructor<" + class_name + ">>;\n");
-    }
-
-    hpp_file_list.write("};\n\n");
-
-    for(final ClassModel classModel: classModels) {
-      make_class_file(java_file_list, hpp_file_list, classModel);
-    }
+    // System.out.println("nonloadingClassMap:");
+    // for(final ClassDesc classDesc: nonloadingClassSet) {
+    //   make_class_from_ClassDesc(java_file_list, hpp_frwd_list, hpp_decl_list, hpp_impl_list, classDesc);
+    //   // System.out.println("  " + nonloadingClassEntry.getKey() + ": " + nonloadingClassEntry.getValue());
+    // }
+    // System.out.println();
 
     java_file_list.close();
-    hpp_file_list.close();
+    hpp_frwd_list.close();
+    hpp_decl_list.close();
+    hpp_impl_list.close();
 
-    for(final Entry<String, Set<AccessFlag>> entry: classAccessFlagsMap.entrySet()) {
-      System.out.println(entry);
-    }
+    // for(final Entry<ClassDesc, Set<AccessFlag>> entry: classAccessFlagsMap.entrySet()) {
+    //   System.out.println(entry);
+    // }
   }
 }

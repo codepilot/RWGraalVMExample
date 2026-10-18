@@ -114,6 +114,7 @@ execute_process(
   --verbose
   --emit build-report
   -g
+  --gc=G1
   --no-fallback
   -march=x86-64-v3
   -H:+UnlockExperimentalVMOptions
