@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   std::println("Device::RAPIDWRIGHT_YEAR_VERSION: {}", Device::RAPIDWRIGHT_YEAR_VERSION);
   std::println("Device::RAPIDWRIGHT_QUARTER_VERSION: {}", Device::RAPIDWRIGHT_QUARTER_VERSION);
   std::println("Device::RAPIDWRIGHT_MINOR_VERSION: {}", Device::RAPIDWRIGHT_MINOR_VERSION);
-  std::println("Device::QUIET_MESSAGE: {}", static_cast<int>(Device::QUIET_MESSAGE));
+  std::println("Device::QUIET_MESSAGE: {}", Device::QUIET_MESSAGE);
 
   std::vector<std::string> args;
   args.reserve(argc);

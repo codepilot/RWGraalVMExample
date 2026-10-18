@@ -381,7 +381,7 @@ public class BuildInterface {
     }
   }
 
-  static void write_field(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_decl_hpp, final FileWriter fw_impl_hpp, final FieldModel fieldModel) throws IOException {
+  static void write_field(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_decl_hpp, final FileWriter fw_impl_hpp, final FileWriter fw_frmt_hpp, final String root_namespace, final FieldModel fieldModel) throws IOException {
     final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
     final String class_name = classModel.thisClass().asInternalName().replace('/', '_');
     final ClassDesc classDesc = classModel.thisClass().asSymbol();
@@ -542,8 +542,8 @@ public class BuildInterface {
 
       if(!accessFlags.has(AccessFlag.FINAL)) {
         fw_decl_hpp.write("\n");
-        fw_decl_hpp.write("  /* static setter " + cpp_type + " " + field_name + "*/\n");
-        fw_decl_hpp.write("  __forceinline Property_" + CEntryPointID_getter + "_" + field_name + "& operator=(const " + cpp_type + "& val) noexcept;\n");
+        fw_decl_hpp.write("      /* static setter " + cpp_type + " " + field_name + "*/\n");
+        fw_decl_hpp.write("      __forceinline Property_" + CEntryPointID_getter + "_" + field_name + "& operator=(const " + cpp_type + "& val) noexcept;\n");
         fw_impl_hpp.write("  __forceinline " + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + "& " + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + "::operator=(const " + cpp_type + "& val) noexcept {\n");
         fw_impl_hpp.write("    id_" + CEntryPointID_setter + "_" + class_name + "_set_" + static_descriptor + "field_" + field_name + "(localThread.get()" + cpp_this_arg + ", " + cpp_unbox_setter_value + ");\n");
         fw_impl_hpp.write("    return *this;\n");
@@ -553,6 +553,15 @@ public class BuildInterface {
       fw_decl_hpp.write("    };\n\n");
       fw_decl_hpp.write("    static Property_" + CEntryPointID_getter + "_" + field_name + " " + field_name + ";\n\n");
       fw_impl_hpp.write("  " + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + " " + classDesc.displayName() + "::" + field_name + "{};\n\n");
+
+      if(field_type_class_desc.isPrimitive()) {
+        fw_frmt_hpp.write("template <typename CharT>\n");
+        fw_frmt_hpp.write("struct ::std::formatter<" + root_namespace + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + ", CharT> : std::formatter<" + cpp_type + ", CharT> {\n");
+        fw_frmt_hpp.write("  __forceinline constexpr auto format(const " + root_namespace + classDesc.displayName() + "::Property_" + CEntryPointID_getter + "_" + field_name + "& wrapper, auto& ctx) const {\n");
+        fw_frmt_hpp.write("    return std::formatter<" + cpp_type + ", CharT>::format(wrapper.operator " + cpp_type + "(), ctx);\n");
+        fw_frmt_hpp.write("  }\n");
+        fw_frmt_hpp.write("};\n\n");
+      }
 
     } else {
       // fw_decl_hpp.write("    [[no_unique_address]] Property_" + CEntryPointID + "_" + field_name + " " + field_name + ";\n\n");
@@ -1152,7 +1161,7 @@ public class BuildInterface {
   //   fw_impl_hpp.close();
   // }
 
-  static void make_class(final FileWriter java_file_list, final FileWriter hpp_frwd_list, final FileWriter hpp_decl_list, final FileWriter hpp_impl_list, final ClassDesc classDesc, final ClassModel classModel) throws IOException {
+  static void make_class(final FileWriter java_file_list, final FileWriter hpp_frwd_list, final FileWriter hpp_decl_list, final FileWriter hpp_impl_list, final FileWriter hpp_frmt_list, final ClassDesc classDesc, final ClassModel classModel) throws IOException {
     // final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
     final String classNameJava = (classDesc.packageName() + "." + classDesc.displayName()); //classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
 
@@ -1172,9 +1181,11 @@ public class BuildInterface {
     final FileWriter fw_frwd_hpp = new FileWriter("./build/experimental/frwd_" + class_name + ".hpp");
     final FileWriter fw_decl_hpp = new FileWriter("./build/experimental/decl_" + class_name + ".hpp");
     final FileWriter fw_impl_hpp = new FileWriter("./build/experimental/impl_" + class_name + ".hpp");
+    final FileWriter fw_frmt_hpp = new FileWriter("./build/experimental/frmt_" + class_name + ".hpp");
     hpp_frwd_list.write("#include <frwd_" + class_name + ".hpp>\n");
     hpp_decl_list.write("#include <decl_" + class_name + ".hpp>\n");
     hpp_impl_list.write("#include <impl_" + class_name + ".hpp>\n");
+    hpp_frmt_list.write("#include <frmt_" + class_name + ".hpp>\n");
 
     fw_decl_hpp.write("#pragma once\n\n");
     fw_decl_hpp.write("#include <optional>\n");
@@ -1195,6 +1206,8 @@ public class BuildInterface {
     fw_frwd_hpp.write("using OBJECT_HANDLE_" + class_name + " = intptr_t;\n");
     fw_frwd_hpp.write("using OBJECT_HANDLE_RANK_1_" + class_name + " = intptr_t;\n");
     fw_frwd_hpp.write("using OBJECT_HANDLE_RANK_2_" + class_name + " = intptr_t;\n");
+
+    final String root_namespace = "::" + classDesc.packageName().replace(".", "::") + "::";
 
     fw_frwd_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
     fw_decl_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
@@ -1343,7 +1356,7 @@ public class BuildInterface {
         final String field_key = classNameJava + (accessFlags.has(AccessFlag.STATIC)?"::":".") + fieldModel.fieldName().stringValue();
         usedNames.add(field_key);
 
-        write_field(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, fieldModel);
+        write_field(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, fw_frmt_hpp, root_namespace, fieldModel);
       }
   
       for(final MethodModel methodModel: classModel.methods()) {
@@ -1377,6 +1390,7 @@ public class BuildInterface {
     fw_frwd_hpp.close();
     fw_decl_hpp.close();
     fw_impl_hpp.close();
+    fw_frmt_hpp.close();
   }
 
   static void addMissingClassFromName(final String referenceJavaClassName, final String javaClassName, final ClassDesc classDesc) throws IOException {
@@ -1557,10 +1571,12 @@ public class BuildInterface {
     final FileWriter hpp_frwd_list = new FileWriter("./build/experimental/ExperimentalAPI_frwd.hpp");
     final FileWriter hpp_decl_list = new FileWriter("./build/experimental/ExperimentalAPI_decl.hpp");
     final FileWriter hpp_impl_list = new FileWriter("./build/experimental/ExperimentalAPI_impl.hpp");
+    final FileWriter hpp_frmt_list = new FileWriter("./build/experimental/ExperimentalAPI_frmt.hpp");
 
     hpp_frwd_list.write("#pragma once\n\n");
     hpp_decl_list.write("#pragma once\n\n");
     hpp_impl_list.write("#pragma once\n\n");
+    hpp_frmt_list.write("#pragma once\n\n");
 
     for(final String javaPrim: java_primitives) {
       for(int rank = 1; rank <= 2; rank++) {
@@ -1627,7 +1643,7 @@ public class BuildInterface {
     // }
 
     for(final Entry<ClassDesc, ClassModel> entry: classMap.entrySet()) {
-      make_class(java_file_list, hpp_frwd_list, hpp_decl_list, hpp_impl_list, entry.getKey(), entry.getValue());
+      make_class(java_file_list, hpp_frwd_list, hpp_decl_list, hpp_impl_list, hpp_frmt_list, entry.getKey(), entry.getValue());
     }
 
     // System.out.println("nonloadingClassMap:");
@@ -1641,6 +1657,7 @@ public class BuildInterface {
     hpp_frwd_list.close();
     hpp_decl_list.close();
     hpp_impl_list.close();
+    hpp_frmt_list.close();
 
     // for(final Entry<ClassDesc, Set<AccessFlag>> entry: classAccessFlagsMap.entrySet()) {
     //   System.out.println(entry);
