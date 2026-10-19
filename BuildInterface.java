@@ -68,7 +68,7 @@ import java.lang.classfile.Signature.ClassTypeSig;
 import java.lang.classfile.Signature.TypeParam;
 
 @SuppressWarnings({"preview","deprecation"})
-public class BuildInterface {
+public final class BuildInterface {
   private static Set<String> java_primitives = new TreeSet<>(Arrays.asList(
     "boolean",
     "int",
@@ -1290,7 +1290,7 @@ public class BuildInterface {
 
     fw_java.write("@CHeader(" + class_name + ".class)\n");
     fw_java.write("@SuppressWarnings({\"preview\",\"deprecation\",\"removal\"})\n");
-    fw_java.write("public class " + class_name + " implements CHeader.Header {\n");
+    fw_java.write("public final class " + class_name + " implements CHeader.Header {\n");
     fw_java.write("  @Override\n");
     fw_java.write("  public String name() {\n");
     fw_java.write("    return \"" + class_name + "\";\n");
@@ -1514,7 +1514,7 @@ public class BuildInterface {
     
     fw_java.write("@CHeader(" + class_name + ".class)\n");
     fw_java.write("@SuppressWarnings({\"preview\",\"deprecation\",\"removal\"})\n");
-    fw_java.write("public class " + class_name + " implements CHeader.Header {\n");
+    fw_java.write("public final class " + class_name + " implements CHeader.Header {\n");
     fw_java.write("  @Override\n");
     fw_java.write("  public String name() {\n");
     fw_java.write("    return \"" + class_name + "\";\n");
