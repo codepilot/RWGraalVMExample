@@ -18,6 +18,8 @@ set(JAVA_EXE "${GRAAL_PATH}/java.exe")
 
 set(JAVAC_EXE "${GRAAL_PATH}/javac.exe")
 
+set(JAR_EXE "${GRAAL_PATH}/jar.exe")
+
 set(JAVA_HOME "${graalvm_SOURCE_DIR}")
 
 set(PATH "${GRAAL_PATH};${PATH}")
@@ -28,12 +30,34 @@ set(RAPIDWRIGHT_PATH "${rapidwright_SOURCE_DIR}")
 
 set(RAPIDWRIGHT_EXAMPLES_PATH "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples")
 
+file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent)
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/TransformAgent DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+message("COMPILING TransformAgent.java...")
+execute_process(
+  COMMAND ${JAVAC_EXE}
+  -d ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent
+  ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent/TransformAgent.java
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent
+)
+
+message("JARing TransformAgent.jar...")
+execute_process(
+  COMMAND ${JAR_EXE}
+  cvfm
+  TransformAgent.jar
+  MANIFEST.MF
+  *.class
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent
+)
+
 set(RapidWrightAPI_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/RapidWrightAPI.java")
 file(REMOVE "${RapidWrightAPI_JAVA_PATH}")
 
-file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/build/experimental")
-file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
-file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/bin/com/xilinx/rapidwright/experimental")
+# file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/build/experimental")
+# file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
+# file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/bin/com/xilinx/rapidwright/experimental")
 
 file(
   COPY_FILE
@@ -41,11 +65,11 @@ file(
   "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
 )
 
-file(
-  COPY_FILE
-  "${CMAKE_CURRENT_SOURCE_DIR}/BuildInterface.java"
-  "${RAPIDWRIGHT_EXAMPLES_PATH}/BuildInterface.java"
-)
+# file(
+#   COPY_FILE
+#   "${CMAKE_CURRENT_SOURCE_DIR}/BuildInterface.java"
+#   "${RAPIDWRIGHT_EXAMPLES_PATH}/BuildInterface.java"
+# )
 
 execute_process(COMMAND ${rw_gradlew_bat} compileJava WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
 execute_process(COMMAND ${rw_gradlew_bat} jar WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
@@ -71,17 +95,17 @@ execute_process(COMMAND ${JAVA_EXE}
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
 )
 
-file(MAKE_DIRECTORY "${rapidwright_SOURCE_DIR}/build/experimental")
-file(MAKE_DIRECTORY "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
+# file(MAKE_DIRECTORY "${rapidwright_SOURCE_DIR}/build/experimental")
+# file(MAKE_DIRECTORY "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
 
-message("EXECUTING BuildInterface.java...")
-execute_process(COMMAND ${JAVA_EXE}
-  "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
-  -cp "${CLASS_PATH}"
-  "${RAPIDWRIGHT_EXAMPLES_PATH}/BuildInterface.java"
-  -d "${RAPIDWRIGHT_PATH}"
-  WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
-)
+# message("EXECUTING BuildInterface.java...")
+# execute_process(COMMAND ${JAVA_EXE}
+#   "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
+#   -cp "${CLASS_PATH}"
+#   "${RAPIDWRIGHT_EXAMPLES_PATH}/BuildInterface.java"
+#   -d "${RAPIDWRIGHT_PATH}"
+#   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
+# )
 
 file(COPY_FILE
   "${graalvmexample_SOURCE_DIR}/RapidWrightAPI.java"
@@ -97,8 +121,8 @@ execute_process(
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
 )
 
-message("COMPILING @java_file_list.txt...")
-execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "@${rapidwright_SOURCE_DIR}/build/java_file_list.txt" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
+# message("COMPILING @java_file_list.txt...")
+# execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "@${rapidwright_SOURCE_DIR}/build/java_file_list.txt" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
 
@@ -136,6 +160,7 @@ execute_process(
   --initialize-at-run-time=com.xilinx.rapidwright.gui.WidgetMaker
   --initialize-at-run-time=org.fusesource.jansi.internal.Kernel32
   --initialize-at-run-time=org.fusesource.jansi.internal.CLibrary
+  -J-javaagent:TransformAgent/TransformAgent.jar
   --enable-native-access=ALL-UNNAMED
   --shared
   --emit build-report

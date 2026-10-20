@@ -279,6 +279,14 @@ public final class BuildInterface {
         System.out.println("equals 'com.xilinx.rapidwright.examples.RapidWrightAPI'");
         return;
       }
+      if(classNameJava.equals("com.xilinx.rapidwright.rwroute.CUFRpartitionTree$PartitionTreeNode")) {
+        System.out.println("equals 'com.xilinx.rapidwright.rwroute.CUFRpartitionTree$PartitionTreeNode'");
+        return;
+      }
+      if(classNameJava.equals("com.xilinx.rapidwright.rwroute.CUFRpartitionTree$PartitionBBox")) {
+        System.out.println("equals 'com.xilinx.rapidwright.rwroute.CUFRpartitionTree$PartitionBBox'");
+        return;
+      }
     }
 
     if(accessFlags.has(AccessFlag.PRIVATE)) {
@@ -426,10 +434,10 @@ public final class BuildInterface {
     final String java_class_name = ((field_type_class_desc.packageName().length()>0)?(field_type_class_desc.packageName() + "."):"") + field_type_class_desc.displayName();
     final String cpp_class_name = java_class_name.replace(".", "_");
     final String java_instance_arg = accessFlags.has(AccessFlag.STATIC)?"":", @CTypedef(name = \"OBJECT_HANDLE_" + class_name + "\") final ObjectHandle instance_handle";
-    final String java_unbox_instance = accessFlags.has(AccessFlag.STATIC)?"":"    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(instance_handle);\n";
-    final String java_unbox_setter_value = field_type_class_desc.isPrimitive()?"setter_value":"ObjectHandles.getGlobal().get(setter_value)";
+    final String java_unbox_instance = accessFlags.has(AccessFlag.STATIC)?"":"    final " + classNameJava + " instance = globalObjectHandles.get(instance_handle);\n";
+    final String java_unbox_setter_value = field_type_class_desc.isPrimitive()?"setter_value":"globalObjectHandles.get(setter_value)";
     final String cpp_unbox_setter_value = field_type_class_desc.isPrimitive()?"val":"val.ObjectHandle";
-    final String java_box_return_prefix = field_type_class_desc.isPrimitive()?"":"ObjectHandles.getGlobal().create(";
+    final String java_box_return_prefix = field_type_class_desc.isPrimitive()?"":"globalObjectHandles.create(";
     final String java_box_return_postfix = field_type_class_desc.isPrimitive()?"":")";
     String cpp_box_return_prefix = "";
     String cpp_box_return_postfix = "";
@@ -477,7 +485,10 @@ public final class BuildInterface {
     fw_java.write("\n");
     fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID_getter + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
     fw_java.write(java_get_ret_CTypedef);
-    fw_java.write("  public static " + java_get_ret + " id_" + CEntryPointID_getter + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(IsolateThread thread" + java_instance_arg + ") {\n");
+    fw_java.write("  public static final " + java_get_ret + " id_" + CEntryPointID_getter + "_" + class_name + "_get_" + static_descriptor + "field_" + field_name + "(IsolateThread thread" + java_instance_arg + ") {\n");
+    if((!field_type_class_desc.isPrimitive()) || (!accessFlags.has(AccessFlag.STATIC))) {
+      fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
+    }
     fw_java.write(java_unbox_instance);
     fw_java.write("    final " + java_get_ret + " retval = " + java_box_return_prefix + java_field_base + "." + field_name + java_box_return_postfix +";\n");
     fw_java.write("    return retval;\n");
@@ -486,7 +497,10 @@ public final class BuildInterface {
     if(!accessFlags.has(AccessFlag.FINAL)) {
       fw_java.write("\n");
       fw_java.write("  @CEntryPoint(name = \"id_" + CEntryPointID_setter + "_" + class_name + "_set_" + static_descriptor + "field_" + field_name + "\") /* 0x" + Integer.toHexString(accessFlags.flagsMask()) + " */\n");
-      fw_java.write("  public static void id_" + CEntryPointID_setter + "_" + class_name + "_set_" + static_descriptor + "field_" + field_name + "(IsolateThread thread" + java_instance_arg + ", " + java_get_ret_CTypedef + " " + java_get_ret + " setter_value) {\n");
+      fw_java.write("  public static final void id_" + CEntryPointID_setter + "_" + class_name + "_set_" + static_descriptor + "field_" + field_name + "(IsolateThread thread" + java_instance_arg + ", " + java_get_ret_CTypedef + " " + java_get_ret + " setter_value) {\n");
+      if((!field_type_class_desc.isPrimitive()) || (!accessFlags.has(AccessFlag.STATIC))) {
+        fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
+      }
       fw_java.write(java_unbox_instance);
       fw_java.write("    " + java_field_base + "." + field_name + " = " + java_unbox_setter_value + ";\n");
       fw_java.write("  }\n\n");
@@ -572,7 +586,7 @@ public final class BuildInterface {
 
   }
 
-  static void write_constructor(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_def_hpp, final FileWriter fw_impl_hpp, final MethodModel methodModel) throws IOException {
+  static void write_constructor(final ClassModel classModel, final FileWriter fw_java, final FileWriter fw_decl_hpp, final FileWriter fw_impl_hpp, final MethodModel methodModel) throws IOException {
     final String classNameJava = classModel.thisClass().asInternalName().replace('/', '.').replace('$', '.');
     final String class_name = classModel.thisClass().asInternalName().replace('/', '_').replace('$', '_');
     final AccessFlags methodAccessFlags = methodModel.flags();
@@ -590,16 +604,17 @@ public final class BuildInterface {
 
     fw_java.write("\n");
     fw_java.write("  @CEntryPoint(name = \"" + cEntryPoint + "\") @CTypedef(name = \"" + class_name + " *\") /* method: 0x" + Integer.toHexString(methodAccessFlags.flagsMask()) + ", class: 0x" + Integer.toHexString(classAccessFlags.flagsMask()) + " */\n");
-    fw_java.write("  public static ObjectHandle " + cEntryPoint + "(IsolateThread thread");
+    fw_java.write("  public static final ObjectHandle " + cEntryPoint + "(IsolateThread thread");
     write_java_arguments(fw_java, methodModel);
     fw_java.write(")");
     method_throws(fw_java, methodModel);
     fw_java.write(" {\n");
+    fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
     write_java_arguments_unboxing(fw_java, methodModel);
     fw_java.write("    final " + classNameJava + " instance = new " + classNameJava + "(");
     write_java_method_params(fw_java, methodModel);
     fw_java.write(");\n");
-    fw_java.write("    final ObjectHandle handle = ObjectHandles.getGlobal().create(instance);\n");
+    fw_java.write("    final ObjectHandle handle = globalObjectHandles.create(instance);\n");
     fw_java.write("    return handle;\n");
     fw_java.write("  }\n");
 
@@ -738,7 +753,7 @@ public final class BuildInterface {
         if(param_type_str.equals("java.lang.String")) {
           fw_java.write("    final String param_" + param_id + " = CTypeConversion.toJavaString(param_handle_" + param_id + ");\n");
         } else {
-          fw_java.write("    final " + param_type_str + " param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + ");\n");
+          fw_java.write("    final " + param_type_str + " param_" + param_id + " = globalObjectHandles.get(param_handle_" + param_id + ");\n");
         }
       }
       if(param.isArray()) {
@@ -749,10 +764,10 @@ public final class BuildInterface {
         fw_java.write("    // baseComponentDesc.descriptorString():" + baseComponentDesc.descriptorString() + "\n");
         if(baseComponentDesc.packageName().length() > 0) {
           final String param_type_str = (baseComponentDesc.packageName() + "." + baseComponentDesc.displayName()).replace('$', '.');
-          fw_java.write("    final " + param_type_str + "[]".repeat(rank) + " param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + "); // pkg:" + baseComponentDesc.packageName() + " " + baseComponentDesc + "\n");
+          fw_java.write("    final " + param_type_str + "[]".repeat(rank) + " param_" + param_id + " = globalObjectHandles.get(param_handle_" + param_id + "); // pkg:" + baseComponentDesc.packageName() + " " + baseComponentDesc + "\n");
         } else {
           final String param_type_str = (baseComponentDesc.displayName()).replace('$', '.');
-          fw_java.write("    final " + param_type_str + "[]".repeat(rank) + "  param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + "); // pkg:" + baseComponentDesc.packageName() + " " + baseComponentDesc + "\n");
+          fw_java.write("    final " + param_type_str + "[]".repeat(rank) + "  param_" + param_id + " = globalObjectHandles.get(param_handle_" + param_id + "); // pkg:" + baseComponentDesc.packageName() + " " + baseComponentDesc + "\n");
         }
       }
     }
@@ -826,16 +841,16 @@ public final class BuildInterface {
 
     //   if(param.isClassOrInterface()) {
     //     final String param_type_str = (param.packageName() + "." + param.displayName()).replace('$', '.');
-    //     fw_java.write("    final " + param_type_str + " param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + ");\n");
+    //     fw_java.write("    final " + param_type_str + " param_" + param_id + " = globalObjectHandles.get(param_handle_" + param_id + ");\n");
     //   }
     //   if(param.isArray()) {
     //     ClassDesc componentDesc = param.componentType();
     //     if(componentDesc.packageName().length() > 0) {
     //       final String param_type_str = (componentDesc.packageName() + "." + componentDesc.displayName()).replace('$', '.');
-    //       fw_java.write("    final " + param_type_str + "[] param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + "); // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
+    //       fw_java.write("    final " + param_type_str + "[] param_" + param_id + " = globalObjectHandles.get(param_handle_" + param_id + "); // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
     //     } else {
     //       final String param_type_str = (componentDesc.displayName()).replace('$', '.');
-    //       fw_java.write("    final " + param_type_str + "[] param_" + param_id + " = ObjectHandles.getGlobal().get(param_handle_" + param_id + "); // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
+    //       fw_java.write("    final " + param_type_str + "[] param_" + param_id + " = globalObjectHandles.get(param_handle_" + param_id + "); // pkg:" + componentDesc.packageName() + " " + componentDesc + "\n");
     //     }
     //   }
     }
@@ -866,13 +881,13 @@ public final class BuildInterface {
     if(!are_method_types_fully_public(methodModel)) return;
 
     if(java_methodModel_name.equals("<init>")) {
-      // write_constructor(classModel, fw_java, fw_def_hpp, fw_impl_hpp, methodModel);
+      write_constructor(classModel, fw_java, fw_decl_hpp, fw_impl_hpp, methodModel);
       return;
     }
 
     final String return_keyword = returnTypeDesc.displayName().equals("void")?"":"return ";
     String java_return_type = returnTypeDesc.isPrimitive()?returnTypeDesc.displayName():"ObjectHandle";
-    final String java_return_translation_start = returnTypeDesc.isPrimitive()?"":"ObjectHandles.getGlobal().create(";
+    final String java_return_translation_start = returnTypeDesc.isPrimitive()?"":"globalObjectHandles.create(";
     final String java_return_translation_end = returnTypeDesc.isPrimitive()?"":")";
     final String cpp_return_type = returnTypeDesc.displayName().equals("void")?"void":"auto";
 
@@ -908,14 +923,15 @@ public final class BuildInterface {
         fw_java.write("@CTypedef(name = \"OBJECT_HANDLE_" + cpp_class_name + "\")\n");
       }
     }
-    fw_java.write("  public static " + java_return_type + " " + cEntryPoint + "(IsolateThread thread" + java_this_keyword);
+    fw_java.write("  public static final " + java_return_type + " " + cEntryPoint + "(IsolateThread thread" + java_this_keyword);
 
     write_java_arguments(fw_java, methodModel);
     fw_java.write(")");
     method_throws(fw_java, methodModel);
     fw_java.write(" {\n");
+    fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
     if(!methodAccessFlags.has(AccessFlag.STATIC)) {
-      fw_java.write("    final " + classNameJava + " instance = ObjectHandles.getGlobal().get(handle_this);\n");
+      fw_java.write("    final " + classNameJava + " instance = globalObjectHandles.get(handle_this);\n");
     }
 
     write_java_arguments_unboxing(fw_java, methodModel);
@@ -1304,8 +1320,9 @@ public final class BuildInterface {
     fw_java.write("\n");
 
     fw_java.write("  @CEntryPoint(name = \"" + class_name + "_free_instance\")\n");
-    fw_java.write("  public static void " + class_name + "_free_instance(IsolateThread thread, @CTypedef(name = \"OBJECT_HANDLE_" + class_name + "\") final ObjectHandle handle) {\n");
-    fw_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
+    fw_java.write("  public static final void " + class_name + "_free_instance(IsolateThread thread, @CTypedef(name = \"OBJECT_HANDLE_" + class_name + "\") final ObjectHandle handle) {\n");
+    fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
+    fw_java.write("    globalObjectHandles.destroy(handle);\n");
     fw_java.write("  }\n");
     fw_java.write("\n");
 
@@ -1313,12 +1330,13 @@ public final class BuildInterface {
       if(is_ClassDesc_public(classDesc)) {
         fw_java.write("  @CEntryPoint(name = \"RANK_" + rank + "_" + class_name + "_constructor\")\n");
         fw_java.write("  @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + class_name + "\")\n");
-        fw_java.write("  public static ObjectHandle RANK_" + rank + "_" + class_name + "_constructor(IsolateThread thread");
+        fw_java.write("  public static final ObjectHandle RANK_" + rank + "_" + class_name + "_constructor(IsolateThread thread");
         for(int dim = 1; dim <= rank; dim++) {
           fw_java.write(", final int dim_" + dim);
         }
         fw_java.write(") {\n");
-        fw_java.write("    return ObjectHandles.getGlobal().create(new " + classNameJava.replace("$", "."));
+        fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
+        fw_java.write("    return globalObjectHandles.create(new " + classNameJava.replace("$", "."));
         for(int dim = 1; dim <= rank; dim++) {
           fw_java.write("[dim_" + dim + "]");
         }
@@ -1328,8 +1346,9 @@ public final class BuildInterface {
       }
 
       fw_java.write("  @CEntryPoint(name = \"RANK_" + rank + "_" + class_name + "_free_instance\")\n");
-      fw_java.write("  public static void RANK_" + rank + "_" + class_name + "_free_instance(IsolateThread thread, @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + class_name + "\") final ObjectHandle handle) {\n");
-      fw_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
+      fw_java.write("  public static final void RANK_" + rank + "_" + class_name + "_free_instance(IsolateThread thread, @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + class_name + "\") final ObjectHandle handle) {\n");
+      fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
+      fw_java.write("    globalObjectHandles.destroy(handle);\n");
       fw_java.write("  }\n");
       fw_java.write("\n");
     }
@@ -1530,19 +1549,21 @@ public final class BuildInterface {
     for(final String javaPrim: java_primitives) {
       for(int rank = 1; rank <= 2; rank++) {
         fw_java.write("  @CEntryPoint(name = \"RANK_" + rank + "_" + javaPrim + "_free_instance\")\n");
-        fw_java.write("  public static void RANK_" + rank + "_" + javaPrim + "_free_instance(IsolateThread thread, @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + javaPrim + "\") final ObjectHandle handle) {\n");
-        fw_java.write("    ObjectHandles.getGlobal().destroy(handle);\n");
+        fw_java.write("  public static final void RANK_" + rank + "_" + javaPrim + "_free_instance(IsolateThread thread, @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + javaPrim + "\") final ObjectHandle handle) {\n");
+        fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
+        fw_java.write("    globalObjectHandles.destroy(handle);\n");
         fw_java.write("  }\n");
         fw_java.write("\n");
 
         fw_java.write("  @CEntryPoint(name = \"RANK_" + rank + "_" + javaPrim + "_constructor\")\n");
         fw_java.write("  @CTypedef(name = \"OBJECT_HANDLE_RANK_" + rank + "_" + javaPrim + "\")\n");
-        fw_java.write("  public static ObjectHandle RANK_" + rank + "_" + javaPrim + "_constructor(IsolateThread thread");
+        fw_java.write("  public static final ObjectHandle RANK_" + rank + "_" + javaPrim + "_constructor(IsolateThread thread");
         for(int dim = 1; dim <= rank; dim++) {
           fw_java.write(", final int dim_" + dim);
         }
         fw_java.write(") {\n");
-        fw_java.write("    return ObjectHandles.getGlobal().create(new " + javaPrim.replace("$", "."));
+        fw_java.write("    final ObjectHandles globalObjectHandles = ObjectHandles.getGlobal();\n");
+        fw_java.write("    return globalObjectHandles.create(new " + javaPrim.replace("$", "."));
         for(int dim = 1; dim <= rank; dim++) {
           fw_java.write("[dim_" + dim + "]");
         }
