@@ -74,7 +74,7 @@ file(
 execute_process(COMMAND ${rw_gradlew_bat} compileJava WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
 execute_process(COMMAND ${rw_gradlew_bat} jar WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
 
-set(CLASS_PATH "${RAPIDWRIGHT_PATH}/build/libs/main.jar;${RAPIDWRIGHT_PATH}/build/libs/rapidwright.jar")
+set(CLASS_PATH "${RAPIDWRIGHT_PATH}/build/libs/main.jar")
 
 set(REFLECTION_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI")
 
@@ -166,7 +166,7 @@ execute_process(
   --emit build-report
   -g
   -Ob
-  --silent
+  --verbose
   --future-defaults=all
   --gc=G1
   -march=x86-64-v3
@@ -175,6 +175,7 @@ execute_process(
   -H:-DeleteLocalSymbols
   -H:+AddAllCharsets
   -H:Name=librapidwright
+  --native-compiler-options=/bigobj
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 

@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.classfile.Annotation;
 import java.lang.classfile.AnnotationElement;
+import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassElement;
 import java.lang.classfile.ClassFile;
@@ -19,6 +20,7 @@ import java.lang.classfile.TypeAnnotation.TargetInfo;
 import java.lang.classfile.attribute.InnerClassesAttribute;
 import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
 import java.lang.classfile.attribute.RuntimeVisibleTypeAnnotationsAttribute;
+import java.lang.classfile.attribute.SourceFileAttribute;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
@@ -37,6 +39,10 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.Optional;
 
 @SuppressWarnings("unused")
 public final class TransformAgent {
@@ -161,11 +167,15 @@ public final class TransformAgent {
   public final static class XFM implements ClassTransform {
     final ClassModel classModel;
     final ClassDesc classDesc;
+    final String hash;
+    int method_id = 0;
+
     // final boolean isInnerClass;
 
-    public XFM(final ClassModel arg_classModel) {
+    public XFM(final ClassModel arg_classModel, final String hash) {
       classModel = arg_classModel;
       classDesc = classModel.thisClass().asSymbol();
+      this.hash = hash;
       // System.out.println(classDesc.packageName() + "." + classDesc.displayName());
       // boolean maybeInnerClass = false;
       // for(final var attr: classModel.attributes()) {
@@ -185,8 +195,14 @@ public final class TransformAgent {
 
     @Override
     final public void atStart(final ClassBuilder classBuilder) {
+      Optional<SourceFileAttribute> optAttrSourceFile = classModel.findAttribute(Attributes.sourceFile());
+      if(!optAttrSourceFile.isPresent()) {
+        classBuilder.with(SourceFileAttribute.of((classDesc.packageName() + "." + classDesc.displayName()).replace('.', '/') + ".class"));
+      }
       final int current_method_id = method_id++;
-      final String methodName = "id_" + current_method_id + "_DECONSTRUCTOR_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_');
+      final String methodName = "sha256_" + hash + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_DECONSTRUCTOR";
+      System.out.println("  " + methodName);
+
       final List<TypeAnnotation> typeAnnotations = new ArrayList<>();
       typeAnnotations.add(TypeAnnotation.of(
         TargetInfo.ofMethodFormalParameter(1),
@@ -243,12 +259,14 @@ public final class TransformAgent {
 
       final boolean isConstructor = methodModel.methodName().stringValue().equals("<init>");
       if(!isConstructor) return;
+      if(isConstructor) return;
       // if(isInnerClass) return;
 
       final boolean isStatic = methodModel.flags().has(AccessFlag.STATIC);
 
       final int current_method_id = method_id++;
-      final String methodName = "id_" + current_method_id + "_" + (isConstructor?"CONSTRUCTOR":methodModel.methodName().stringValue());
+      final String methodName = "sha256_" + hash + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace(".", "_").replace("$", "_") + "_id_" + current_method_id + "_" + (isConstructor?"CONSTRUCTOR":methodModel.methodName().stringValue());
+      System.out.println("  " + methodName);
 
       final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
       final int methodParameterCount = methodTypeDesc.parameterCount();
@@ -338,14 +356,21 @@ public final class TransformAgent {
     }
   };
 
-  public final static byte[] b2b_xfm(final byte[] classBytes) {
+  public final static byte[] b2b_xfm(final byte[] classBytes) throws NoSuchAlgorithmException {
+    final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    final byte[] hashBytes = digest.digest(classBytes);
+    final String hexString = HexFormat.of().formatHex(hashBytes);
+
     final ClassFile cf = ClassFile.of();
     final ClassModel classModel = cf.parse(classBytes);
-    final byte[] newClassBytes = cf.transformClass(classModel, new XFM(classModel));
+    final ClassDesc classDesc = classModel.thisClass().asSymbol();
+    if(classDesc.displayName().length() <= 1) return null;
+
+    final byte[] newClassBytes = cf.transformClass(classModel, new XFM(classModel, hexString));
     return newClassBytes;
   }
 
-  public final static void xJar(final String originalJar, final String modifiedJar) throws IOException {
+  public final static void xJar(final String originalJar, final String modifiedJar) throws IOException, NoSuchAlgorithmException {
     final File inputJar = new File(originalJar);
     final File outputJar = new File(modifiedJar);
     final FileInputStream fisInputJar = new FileInputStream(inputJar);
@@ -384,7 +409,6 @@ public final class TransformAgent {
     fisInputJar.close();
   }
 
-  static int method_id = 0;
   public final static void main(final String[] args) throws IOException {
     // System.out.println("TransformAgent");
     // System.out.println("args.length: " + args.length);
@@ -415,11 +439,14 @@ public final class TransformAgent {
       final Class<?> classBeingRedefined, 
       final ProtectionDomain protectionDomain, 
       final byte[] classfileBuffer) throws IllegalClassFormatException {
-        if (className.endsWith("com/xilinx/rapidwright/edif/EDIFCell")) {
+        if (className.contains("com/xilinx/rapidwright/")) {
           System.out.println("XFM_ClassFileTransformer: '" + className + "', classfileBuffer: " + classfileBuffer.length);
-          final byte[] result = b2b_xfm(classfileBuffer);
-          System.out.println("XFM_ClassFileTransformer: '" + className + "', classfileBuffer: " + classfileBuffer.length + ", result: " + result.length);
-          return result;
+          try {
+            final byte[] result = b2b_xfm(classfileBuffer);
+            return result;
+          } catch(NoSuchAlgorithmException err) {
+            return null;
+          }
         }
         return null;
       }
