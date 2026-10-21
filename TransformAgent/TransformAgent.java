@@ -71,12 +71,12 @@ public final class TransformAgent {
 
   static final String OBJECT_HANDLE_STRING(ClassDesc desc) {
     if(desc.isClassOrInterface()) {
-      return ("OBJECT_HANDLE_" + desc.packageName() + "_" + desc.displayName()).replace('.', '_');
+      return ("OBJECT_HANDLE_" + desc.packageName() + "_" + desc.displayName()).replace('.', '_').replace('$', '_');
     }
     if(desc.isArray()) {
       final int rank = getRank(desc);
       final ClassDesc base = getBaseComponentType(desc);
-      return "RANK_" + rank + "_" + base.packageName() + "_" + base.displayName().replace('.', '_');
+      return "RANK_" + rank + "_" + base.packageName() + "_" + base.displayName().replace('.', '_').replace('$', '_');
     }
     return null;
   }
@@ -201,7 +201,7 @@ public final class TransformAgent {
       }
       final int current_method_id = method_id++;
       final String methodName = "sha256_" + hash + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_DECONSTRUCTOR";
-      System.out.println("  " + methodName);
+      // System.out.println("  " + methodName);
 
       final List<TypeAnnotation> typeAnnotations = new ArrayList<>();
       typeAnnotations.add(TypeAnnotation.of(
@@ -264,8 +264,8 @@ public final class TransformAgent {
       final boolean isStatic = methodModel.flags().has(AccessFlag.STATIC);
 
       final int current_method_id = method_id++;
-      final String methodName = "sha256_" + hash + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace(".", "_").replace("$", "_") + "_id_" + current_method_id + "_" + (isConstructor?"CONSTRUCTOR":methodModel.methodName().stringValue());
-      System.out.println("  " + methodName);
+      final String methodName = "sha256_" + hash + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_" + (isConstructor?"CONSTRUCTOR":methodModel.methodName().stringValue());
+      // System.out.println("  " + methodName);
 
       final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
       final int methodParameterCount = methodTypeDesc.parameterCount();
@@ -439,7 +439,7 @@ public final class TransformAgent {
       final ProtectionDomain protectionDomain, 
       final byte[] classfileBuffer) throws IllegalClassFormatException {
         if (className.contains("com/xilinx/rapidwright/")) {
-          System.out.println("XFM_ClassFileTransformer: '" + className + "', classfileBuffer: " + classfileBuffer.length);
+          // System.out.println("XFM_ClassFileTransformer: '" + className + "', classfileBuffer: " + classfileBuffer.length);
           try {
             final byte[] result = b2b_xfm(classfileBuffer);
             return result;
@@ -452,7 +452,7 @@ public final class TransformAgent {
   }
 
   public static void premain(String agentArgs, Instrumentation inst) {
-    System.out.println("Java Agent initialized. Registering TransformAgent...");
+    // System.out.println("Java Agent initialized. Registering TransformAgent...");
     inst.addTransformer(new XFM_ClassFileTransformer());
   }
 }
