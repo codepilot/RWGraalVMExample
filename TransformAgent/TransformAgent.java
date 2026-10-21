@@ -259,7 +259,6 @@ public final class TransformAgent {
 
       final boolean isConstructor = methodModel.methodName().stringValue().equals("<init>");
       if(!isConstructor) return;
-      if(isConstructor) return;
       // if(isInnerClass) return;
 
       final boolean isStatic = methodModel.flags().has(AccessFlag.STATIC);
