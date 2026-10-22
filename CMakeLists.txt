@@ -38,8 +38,8 @@ message("COMPILING TransformAgent.java...")
 execute_process(
   COMMAND ${JAVAC_EXE}
   -d ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent
-  ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent/TransformAgent.java
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent
+  ${CMAKE_CURRENT_SOURCE_DIR}/TransformAgent/TransformAgent.java
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/TransformAgent
 )
 
 message("JARing TransformAgent.jar...")
@@ -178,7 +178,7 @@ execute_process(
   --shared
   --emit build-report
   -g
-  -Ob
+  -O3
   --verbose
   --future-defaults=all
   --gc=G1

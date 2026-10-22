@@ -457,17 +457,18 @@ public final class TransformAgent {
 
     final private void acceptMethodModel(final ClassBuilder classBuilder, final MethodModel methodModel) {
       if(!methodModel.flags().has(AccessFlag.PUBLIC)) return;
+      if(methodModel.flags().has(AccessFlag.SYNTHETIC)) return;
 
-      if(methodModel.methodName().stringValue().equals("<clinit>")) return;
+      final String originalMethodName = methodModel.methodName().stringValue();
+      if(originalMethodName.length() <= 1) return;
+      if(originalMethodName.equals("<clinit>")) return;
 
-      final boolean isConstructor = methodModel.methodName().stringValue().equals("<init>");
-      if(!isConstructor) return;
-      // if(isInnerClass) return;
+      final boolean isConstructor = originalMethodName.equals("<init>");
 
       final boolean isStatic = methodModel.flags().has(AccessFlag.STATIC);
 
       final int current_method_id = method_id++;
-      final String methodName = "sha256_" + hashString + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_" + (isConstructor?"CONSTRUCTOR":methodModel.methodName().stringValue());
+      final String methodName = "sha256_" + hashString + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_" + (isConstructor?"CONSTRUCTOR":originalMethodName);
       // System.out.println("  " + methodName);
 
       final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
@@ -477,8 +478,11 @@ public final class TransformAgent {
       final MethodTypeDesc addedMethodTypeDesc = transformMethodTypeDesc(classModel, methodModel, typeAnnotations);
 
       try {
-        fw_decl_hpp.write("    __forceinline " + classDesc.displayName().replace('$', '_') + "(");
-        fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::" + classDesc.displayName().replace('$', '_') + "(");
+        final String cpp_class_name = classDesc.displayName().replace('$', '_');
+        final String cpp_method_name = (isConstructor?cpp_class_name:originalMethodName);
+        final String cpp_return_type = (isConstructor?"":(C_TYPE(methodModel.methodTypeSymbol().returnType()) + " "));
+        fw_decl_hpp.write("    __forceinline " + cpp_return_type + cpp_method_name + "(");
+        fw_impl_hpp.write("  __forceinline " + cpp_return_type + cpp_class_name + "::" + cpp_method_name + "(");
 
         for(int parameter_index = 0; parameter_index < methodParameterCount; parameter_index++) {
           final ClassDesc paramType = methodTypeDesc.parameterType(parameter_index);
@@ -493,14 +497,22 @@ public final class TransformAgent {
 
         fw_decl_hpp.write(") noexcept;\n");
 
-        fw_impl_hpp.write(") noexcept:\n    _objectHandle{" + methodName + "(localThread.get()");
+        if(isConstructor) {
+          fw_impl_hpp.write(") noexcept:\n    _objectHandle{" + methodName + "(localThread.get()");
+        } else {
+          fw_impl_hpp.write(") noexcept {\n    " + methodName + "(localThread.get()" + (isStatic?"":", _objectHandle"));
+        }
 
         for(int parameter_index = 0; parameter_index < methodParameterCount; parameter_index++) {
           final ClassDesc paramType = methodTypeDesc.parameterType(parameter_index);
           fw_impl_hpp.write(", ");
           fw_impl_hpp.write("param_" + parameter_index);
         }
-        fw_impl_hpp.write(")} {\n  }\n\n");
+        if(isConstructor) {
+          fw_impl_hpp.write(")} {\n  }\n\n");
+        } else {
+          fw_impl_hpp.write(");\n  }\n\n");
+        }
 
       } catch(IOException err) {
 
@@ -553,17 +565,7 @@ public final class TransformAgent {
               codeBuilder.dup();
               for(int parameter_index = 0; parameter_index < methodParameterCount; parameter_index++) {
                 final ClassDesc paramType = methodTypeDesc.parameterType(parameter_index);
-                if(paramType.equals(ConstantDescs.CD_int) || paramType.equals(ConstantDescs.CD_short) || paramType.equals(ConstantDescs.CD_byte) || paramType.equals(ConstantDescs.CD_char) || paramType.equals(ConstantDescs.CD_boolean)) {
-                  codeBuilder.iload(slot_unboxed_args[parameter_index]);
-                } else if (paramType.equals(ConstantDescs.CD_float)) {
-                  codeBuilder.fload(slot_unboxed_args[parameter_index]);
-                } else if (paramType.equals(ConstantDescs.CD_double)) {
-                  codeBuilder.dload(slot_unboxed_args[parameter_index]);
-                } else if (paramType.equals(ConstantDescs.CD_long)) {
-                  codeBuilder.lload(slot_unboxed_args[parameter_index]);
-                } else {
-                  codeBuilder.aload(slot_unboxed_args[parameter_index]);
-                }
+                codeBuilder.loadLocal(TypeKind.fromDescriptor(paramType.descriptorString()), slot_unboxed_args[parameter_index]);
               }
               codeBuilder.invokespecial(classDesc, "<init>", methodTypeDesc);
               codeBuilder.astore(slot_createdObject);
@@ -575,7 +577,59 @@ public final class TransformAgent {
             });
           } else {
             methodBuilder.withCode((final CodeBuilder codeBuilder) -> {
-              codeBuilder.return_(); // Simple void return
+
+              boolean objectHandleUsage = isStatic?false:true;
+              if(!methodTypeDesc.returnType().isPrimitive()) {
+                objectHandleUsage = true;
+              }
+              for(final ClassDesc paramType: methodTypeDesc.parameterArray()) {
+                if(!paramType.isPrimitive()) {
+                  objectHandleUsage = true;
+                }
+              }
+
+              final int slot_arg_IsolateThread = codeBuilder.parameterSlot(0);
+              final int slot_globalObjectHandles = objectHandleUsage?codeBuilder.allocateLocal(TypeKind.fromDescriptor(classDesc_ObjectHandles.descriptorString())):(-1);
+              if(objectHandleUsage) {
+                cb_ObjectHandles_getGlobal(codeBuilder, slot_globalObjectHandles);
+              }
+              if(!methodTypeDesc.returnType().isPrimitive()) {
+                codeBuilder.loadLocal(TypeKind.fromDescriptor(classDesc_ObjectHandles.descriptorString()), slot_globalObjectHandles);
+              }
+              if(!isStatic) {
+                codeBuilder.loadLocal(TypeKind.fromDescriptor(classDesc_ObjectHandles.descriptorString()), slot_globalObjectHandles);
+                codeBuilder.loadLocal(TypeKind.fromDescriptor(classDesc_ObjectHandle.descriptorString()), 1);
+                codeBuilder.invokeinterface(classDesc_ObjectHandles, "get", MethodTypeDesc.of(ConstantDescs.CD_Object, classDesc_ObjectHandle));
+                codeBuilder.checkcast(classDesc);
+              }
+
+              final int originalParamOffset = isStatic?1:2;
+
+              for(int parameter_index = 0; parameter_index < methodTypeDesc.parameterCount(); parameter_index++) {
+                final ClassDesc paramType = methodTypeDesc.parameterType(parameter_index);
+                final int arg_slot = codeBuilder.parameterSlot(originalParamOffset + parameter_index);
+                if(paramType.isPrimitive()) {
+                  codeBuilder.loadLocal(TypeKind.fromDescriptor(paramType.descriptorString()), arg_slot);
+                } else {
+                  codeBuilder.loadLocal(TypeKind.fromDescriptor(classDesc_ObjectHandles.descriptorString()), slot_globalObjectHandles);
+                  codeBuilder.loadLocal(TypeKind.fromDescriptor(classDesc_ObjectHandle.descriptorString()), arg_slot);
+                  codeBuilder.invokeinterface(classDesc_ObjectHandles, "get", MethodTypeDesc.of(ConstantDescs.CD_Object, classDesc_ObjectHandle));
+                  codeBuilder.checkcast(paramType);
+                }
+              }
+
+              if(isStatic) {
+                codeBuilder.invokestatic(classDesc, originalMethodName, methodTypeDesc, false);
+              } else {
+                codeBuilder.invokespecial(classDesc, originalMethodName, methodTypeDesc, false);
+              }
+
+              if(methodTypeDesc.returnType().isPrimitive()) {
+                codeBuilder.return_(TypeKind.fromDescriptor(methodTypeDesc.returnType().descriptorString()));
+              } else {
+                codeBuilder.invokeinterface(classDesc_ObjectHandles, "create", MethodTypeDesc.of(classDesc_ObjectHandle, ConstantDescs.CD_Object));
+                codeBuilder.areturn();
+              }
             });
           }
         }
