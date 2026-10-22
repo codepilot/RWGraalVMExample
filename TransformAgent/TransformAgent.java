@@ -48,6 +48,7 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Superclass;
 import java.lang.classfile.TypeAnnotation;
 import java.lang.classfile.TypeAnnotation.TargetInfo;
+import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
@@ -365,39 +366,40 @@ public final class TransformAgent {
       final int current_method_id = method_id++;
       final String methodName = "sha256_" + hashString + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_" + fieldName;
 
-      MethodTypeDesc methodTypeDesc = MethodTypeDesc.of(fieldModel.fieldTypeSymbol(), classDesc_IsolateThread);
+      MethodTypeDesc tempMethodTypeDesc = MethodTypeDesc.of(fieldModel.fieldTypeSymbol(), classDesc_IsolateThread);
       final List<TypeAnnotation> typeAnnotations = new ArrayList<>();
 
-      if(!methodTypeDesc.returnType().isPrimitive()) {
-        return;
-        // typeAnnotations.add(TypeAnnotation.of(
-        //   TargetInfo.ofMethodReturn(),
-        //   targetPath,
-        //   Annotation.of(classDesc_CTypedef, AnnotationElement.ofString("name", OBJECT_HANDLE_STRING(methodTypeDesc.returnType())))
-        // ));
-        // methodTypeDesc = methodTypeDesc.changeReturnType(classDesc_ObjectHandle);
+      if(!tempMethodTypeDesc.returnType().isPrimitive()) {
+        typeAnnotations.add(TypeAnnotation.of(
+          TargetInfo.ofMethodReturn(),
+          targetPath,
+          Annotation.of(classDesc_CTypedef, AnnotationElement.ofString("name", OBJECT_HANDLE_STRING(tempMethodTypeDesc.returnType())))
+        ));
+        tempMethodTypeDesc = tempMethodTypeDesc.changeReturnType(classDesc_ObjectHandle);
       }
 
       if(!isStatic) {
-        methodTypeDesc = methodTypeDesc.insertParameterTypes(1, classDesc);
+        tempMethodTypeDesc = tempMethodTypeDesc.insertParameterTypes(1, classDesc);
         typeAnnotations.add(TypeAnnotation.of(
           TargetInfo.ofMethodFormalParameter(1),
           targetPath,
-          Annotation.of(classDesc_CTypedef, AnnotationElement.ofString("name", OBJECT_HANDLE_STRING(methodTypeDesc.parameterType(1))))
+          Annotation.of(classDesc_CTypedef, AnnotationElement.ofString("name", OBJECT_HANDLE_STRING(tempMethodTypeDesc.parameterType(1))))
         ));
-        methodTypeDesc = methodTypeDesc.changeParameterType(1, classDesc_ObjectHandle);
+        tempMethodTypeDesc = tempMethodTypeDesc.changeParameterType(1, classDesc_ObjectHandle);
       }
 
       try {
         final String cpp_method_name = "get_" + (isStatic?"static_":"") + "field_" + fieldName;
-        fw_decl_hpp.write("    __forceinline " + (isStatic?"static ":"") + C_TYPE(methodTypeDesc.returnType()) + " " + cpp_method_name + "() noexcept;\n");
+        fw_decl_hpp.write("    __forceinline " + (isStatic?"static ":"") + C_TYPE(fieldModel.fieldTypeSymbol()) + " " + cpp_method_name + "() noexcept;\n");
 
-        fw_impl_hpp.write("  __forceinline " + C_TYPE(methodTypeDesc.returnType()) + " " + classDesc.displayName().replace('$', '_') + "::" + cpp_method_name + "() noexcept {\n");
+        fw_impl_hpp.write("  __forceinline " + C_TYPE(fieldModel.fieldTypeSymbol()) + " " + classDesc.displayName().replace('$', '_') + "::" + cpp_method_name + "() noexcept {\n");
         fw_impl_hpp.write("    return " + methodName + "(localThread.get()" + (isStatic?"":", _objectHandle") + ");\n");
         fw_impl_hpp.write("  }\n\n");
       } catch(IOException err) {
 
       }
+
+      final MethodTypeDesc methodTypeDesc = tempMethodTypeDesc;
 
       classBuilder.withMethod(
         methodName,
@@ -422,24 +424,31 @@ public final class TransformAgent {
               final int slot_this = nextAvailableSlot++;
 
               codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles), true);
+              if(!methodTypeDesc.returnType().isPrimitive()) {
+                codeBuilder.dup();
+              }
 
               codeBuilder.aload(slot_arg_this);
               codeBuilder.invokeinterface(classDesc_ObjectHandles, "get", MethodTypeDesc.of(ConstantDescs.CD_Object, classDesc_ObjectHandle));
               codeBuilder.checkcast(classDesc);
 
               codeBuilder.getfield(classDesc, fieldName, fieldModel.fieldTypeSymbol());
+              if(!methodTypeDesc.returnType().isPrimitive()) {
+                codeBuilder.invokeinterface(classDesc_ObjectHandles, "create", MethodTypeDesc.of(classDesc_ObjectHandle, ConstantDescs.CD_Object));
+              }
+              codeBuilder.return_(TypeKind.fromDescriptor(methodTypeDesc.returnType().descriptorString()));
             } else {
-              codeBuilder.getstatic(classDesc, fieldName, fieldModel.fieldTypeSymbol());
+
+              if(!methodTypeDesc.returnType().isPrimitive()) {
+                codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles), true);
+                codeBuilder.getstatic(classDesc, fieldName, fieldModel.fieldTypeSymbol());
+                codeBuilder.invokeinterface(classDesc_ObjectHandles, "create", MethodTypeDesc.of(classDesc_ObjectHandle, ConstantDescs.CD_Object));
+              } else {
+                codeBuilder.getstatic(classDesc, fieldName, fieldModel.fieldTypeSymbol());
+              }
+              codeBuilder.return_(TypeKind.fromDescriptor(methodTypeDesc.returnType().descriptorString()));
             }
 
-            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_int)) codeBuilder.ireturn();
-            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_long)) codeBuilder.lreturn();
-            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_float)) codeBuilder.freturn();
-            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_double)) codeBuilder.dreturn();
-            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_short)) codeBuilder.ireturn();
-            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_byte)) codeBuilder.ireturn();
-            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_char)) codeBuilder.ireturn();
-            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_boolean)) codeBuilder.ireturn();
           });
         }
       );
