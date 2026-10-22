@@ -5,21 +5,47 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.classfile.AccessFlags;
 import java.lang.classfile.Annotation;
 import java.lang.classfile.AnnotationElement;
+import java.lang.classfile.attribute.CompilationIDAttribute;
+import java.lang.classfile.attribute.DeprecatedAttribute;
+import java.lang.classfile.attribute.EnclosingMethodAttribute;
 import java.lang.classfile.attribute.InnerClassesAttribute;
+import java.lang.classfile.attribute.ModuleAttribute;
+import java.lang.classfile.attribute.ModuleHashesAttribute;
+import java.lang.classfile.attribute.ModuleMainClassAttribute;
+import java.lang.classfile.attribute.ModulePackagesAttribute;
+import java.lang.classfile.attribute.ModuleResolutionAttribute;
+import java.lang.classfile.attribute.ModuleTargetAttribute;
+import java.lang.classfile.attribute.NestHostAttribute;
+import java.lang.classfile.attribute.NestMembersAttribute;
+import java.lang.classfile.attribute.PermittedSubclassesAttribute;
+import java.lang.classfile.attribute.RecordAttribute;
+import java.lang.classfile.attribute.RuntimeInvisibleAnnotationsAttribute;
+import java.lang.classfile.attribute.RuntimeInvisibleTypeAnnotationsAttribute;
 import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
 import java.lang.classfile.attribute.RuntimeVisibleTypeAnnotationsAttribute;
+import java.lang.classfile.attribute.SignatureAttribute;
+import java.lang.classfile.attribute.SourceDebugExtensionAttribute;
 import java.lang.classfile.attribute.SourceFileAttribute;
+import java.lang.classfile.attribute.SourceIDAttribute;
+import java.lang.classfile.attribute.SyntheticAttribute;
+import java.lang.classfile.attribute.UnknownAttribute;
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassElement;
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassFileVersion;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.ClassTransform;
 import java.lang.classfile.CodeBuilder;
+import java.lang.classfile.CustomAttribute;
+import java.lang.classfile.FieldModel;
+import java.lang.classfile.Interfaces;
 import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.MethodModel;
+import java.lang.classfile.Superclass;
 import java.lang.classfile.TypeAnnotation;
 import java.lang.classfile.TypeAnnotation.TargetInfo;
 import java.lang.constant.ClassDesc;
@@ -326,14 +352,93 @@ public final class TransformAgent {
           });
         }
       );
+    }
+
+    final private void acceptFieldModel(final ClassBuilder classBuilder, final FieldModel fieldModel) {
+      final String fieldName = fieldModel.fieldName().stringValue();
+      if(fieldName.length() <= 1) return;
+
+      final boolean isStatic = fieldModel.flags().has(AccessFlag.STATIC);
+      if(isStatic) return;
+
+      final int current_method_id = method_id++;
+      final String methodName = "sha256_" + hashString + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_" + fieldName;
+
+      MethodTypeDesc methodTypeDesc = MethodTypeDesc.of(fieldModel.fieldTypeSymbol(), classDesc_IsolateThread, classDesc);
+      final List<TypeAnnotation> typeAnnotations = new ArrayList<>();
+
+      if(!methodTypeDesc.returnType().isPrimitive()) {
+        return;
+        // typeAnnotations.add(TypeAnnotation.of(
+        //   TargetInfo.ofMethodReturn(),
+        //   targetPath,
+        //   Annotation.of(classDesc_CTypedef, AnnotationElement.ofString("name", OBJECT_HANDLE_STRING(methodTypeDesc.returnType())))
+        // ));
+        // methodTypeDesc = methodTypeDesc.changeReturnType(classDesc_ObjectHandle);
+      }
+
+      {
+        typeAnnotations.add(TypeAnnotation.of(
+          TargetInfo.ofMethodFormalParameter(1),
+          targetPath,
+          Annotation.of(classDesc_CTypedef, AnnotationElement.ofString("name", OBJECT_HANDLE_STRING(methodTypeDesc.parameterType(1))))
+        ));
+        methodTypeDesc = methodTypeDesc.changeParameterType(1, classDesc_ObjectHandle);
+      }
+
+      try {
+        fw_decl_hpp.write("    __forceinline " + C_TYPE(methodTypeDesc.returnType()) + " get_field_" + fieldName + "() noexcept;\n");
+
+        fw_impl_hpp.write("  __forceinline " + C_TYPE(methodTypeDesc.returnType()) + " " + classDesc.displayName().replace('$', '_') + "::get_field_" + fieldName + "() noexcept {\n");
+        fw_impl_hpp.write("    " + methodName + "(localThread.get(), _objectHandle);\n");
+        fw_impl_hpp.write("  }\n\n");
+      } catch(IOException err) {
+
+      }
+
+      classBuilder.withMethod(
+        methodName,
+        methodTypeDesc,
+        ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
+        (final MethodBuilder methodBuilder) -> {
+          Annotation annotation = Annotation.of(
+            classDesc_CEntryPoint,
+            AnnotationElement.ofString("name", methodName),
+            AnnotationElement.ofClass("include", ClassDesc.of("org.graalvm.nativeimage.c.function", "CEntryPoint$AlwaysIncluded"))
+          );
+
+          methodBuilder.with(RuntimeVisibleAnnotationsAttribute.of(annotation));
+          methodBuilder.with(RuntimeVisibleTypeAnnotationsAttribute.of(typeAnnotations));
+
+          methodBuilder.withCode((final CodeBuilder codeBuilder) -> {
+            int nextAvailableSlot = 0;
+
+            final int slot_arg_IsolateThread = nextAvailableSlot++;
+            final int slot_arg_this = nextAvailableSlot++;
+            final int slot_this = nextAvailableSlot++;
+
+            codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles), true);
+
+            codeBuilder.aload(slot_arg_this);
+            codeBuilder.invokeinterface(classDesc_ObjectHandles, "get", MethodTypeDesc.of(ConstantDescs.CD_Object, classDesc_ObjectHandle));
+            codeBuilder.checkcast(classDesc);
+
+            codeBuilder.getfield(classDesc, fieldName, fieldModel.fieldTypeSymbol());
+            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_int)) codeBuilder.ireturn();
+            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_long)) codeBuilder.lreturn();
+            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_float)) codeBuilder.freturn();
+            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_double)) codeBuilder.dreturn();
+            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_short)) codeBuilder.ireturn();
+            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_byte)) codeBuilder.ireturn();
+            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_char)) codeBuilder.ireturn();
+            if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_boolean)) codeBuilder.ireturn();
+          });
+        }
+      );
 
     }
 
-    @Override
-    final public void accept(final ClassBuilder classBuilder, final ClassElement element) {
-      classBuilder.with(element);
-      if(!(element instanceof MethodModel)) return;
-      final MethodModel methodModel = (MethodModel)element;
+    final private void acceptMethodModel(final ClassBuilder classBuilder, final MethodModel methodModel) {
       if(methodModel.methodName().stringValue().equals("<clinit>")) return;
 
       final boolean isConstructor = methodModel.methodName().stringValue().equals("<init>");
@@ -350,7 +455,7 @@ public final class TransformAgent {
       final int methodParameterCount = methodTypeDesc.parameterCount();
       
       final List<TypeAnnotation> typeAnnotations = new ArrayList<>();
-      MethodTypeDesc addedMethodTypeDesc = transformMethodTypeDesc(classModel, methodModel, typeAnnotations);
+      final MethodTypeDesc addedMethodTypeDesc = transformMethodTypeDesc(classModel, methodModel, typeAnnotations);
 
       try {
         fw_decl_hpp.write("    __forceinline " + classDesc.displayName().replace('$', '_') + "(");
@@ -376,7 +481,7 @@ public final class TransformAgent {
           fw_impl_hpp.write(", ");
           fw_impl_hpp.write("param_" + parameter_index);
         }
-        fw_impl_hpp.write(")} { }\n\n");
+        fw_impl_hpp.write(")} {\n  }\n\n");
 
       } catch(IOException err) {
 
@@ -456,6 +561,136 @@ public final class TransformAgent {
           }
         }
       );
+    }
+
+    @Override
+    final public void accept(final ClassBuilder classBuilder, final ClassElement element) {
+      classBuilder.with(element);
+      if(element instanceof AccessFlags) {
+        return;
+      }
+
+      if(element instanceof ClassFileVersion) {
+        return;
+      }
+
+      if(element instanceof CompilationIDAttribute) {
+        return;
+      }
+
+      if(element instanceof CustomAttribute) {
+        return;
+      }
+
+      if(element instanceof DeprecatedAttribute) {
+        return;
+      }
+
+      if(element instanceof EnclosingMethodAttribute) {
+        return;
+      }
+
+      if(element instanceof FieldModel) {
+        acceptFieldModel(classBuilder, (FieldModel)element);
+        return;
+      }
+
+      if(element instanceof InnerClassesAttribute) {
+        return;
+      }
+
+      if(element instanceof Interfaces) {
+        return;
+      }
+
+      if(element instanceof MethodModel) {
+        acceptMethodModel(classBuilder, (MethodModel)element);
+        return;
+      }
+
+      if(element instanceof ModuleAttribute) {
+        return;
+      }
+
+      if(element instanceof ModuleHashesAttribute) {
+        return;
+      }
+
+      if(element instanceof ModuleMainClassAttribute) {
+        return;
+      }
+
+      if(element instanceof ModulePackagesAttribute) {
+        return;
+      }
+
+      if(element instanceof ModuleResolutionAttribute) {
+        return;
+      }
+
+      if(element instanceof ModuleTargetAttribute) {
+        return;
+      }
+
+      if(element instanceof NestHostAttribute) {
+        return;
+      }
+
+      if(element instanceof NestMembersAttribute) {
+        return;
+      }
+
+      if(element instanceof PermittedSubclassesAttribute) {
+        return;
+      }
+
+      if(element instanceof RecordAttribute) {
+        return;
+      }
+
+      if(element instanceof RuntimeInvisibleAnnotationsAttribute) {
+        return;
+      }
+
+      if(element instanceof RuntimeInvisibleTypeAnnotationsAttribute) {
+        return;
+      }
+
+      if(element instanceof RuntimeVisibleAnnotationsAttribute) {
+        return;
+      }
+
+      if(element instanceof RuntimeVisibleTypeAnnotationsAttribute) {
+        return;
+      }
+
+      if(element instanceof SignatureAttribute) {
+        return;
+      }
+
+      if(element instanceof SourceDebugExtensionAttribute) {
+        return;
+      }
+
+      if(element instanceof SourceFileAttribute) {
+        return;
+      }
+
+      if(element instanceof SourceIDAttribute) {
+        return;
+      }
+
+      if(element instanceof Superclass) {
+        return;
+      }
+
+      if(element instanceof SyntheticAttribute) {
+        return;
+      }
+
+      if(element instanceof UnknownAttribute) {
+        return;
+      }
     }
 
     @Override

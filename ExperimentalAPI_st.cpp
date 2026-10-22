@@ -10,6 +10,7 @@
 int main(int argc, char **argv) {
   using Device = com::xilinx::rapidwright::device::Device;
   using Design = com::xilinx::rapidwright::design::Design;
+  using RWRouteConfig = com::xilinx::rapidwright::rwroute::RWRouteConfig;
   using TileColumnPattern = com::xilinx::rapidwright::device::helper::TileColumnPattern;
 
   {
