@@ -3,9 +3,14 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.classfile.Annotation;
 import java.lang.classfile.AnnotationElement;
+import java.lang.classfile.attribute.InnerClassesAttribute;
+import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
+import java.lang.classfile.attribute.RuntimeVisibleTypeAnnotationsAttribute;
+import java.lang.classfile.attribute.SourceFileAttribute;
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassElement;
@@ -17,32 +22,30 @@ import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.TypeAnnotation;
 import java.lang.classfile.TypeAnnotation.TargetInfo;
-import java.lang.classfile.attribute.InnerClassesAttribute;
-import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
-import java.lang.classfile.attribute.RuntimeVisibleTypeAnnotationsAttribute;
-import java.lang.classfile.attribute.SourceFileAttribute;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.instrument.ClassFileTransformer;
+import java.lang.instrument.IllegalClassFormatException;
+import java.lang.instrument.Instrumentation;
 import java.lang.reflect.AccessFlag;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.ProtectionDomain;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.HexFormat;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
-import java.lang.instrument.Instrumentation;
-import java.lang.instrument.ClassFileTransformer;
-import java.lang.instrument.IllegalClassFormatException;
-import java.security.ProtectionDomain;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
+import java.util.SortedSet;
 
 @SuppressWarnings("unused")
 public final class TransformAgent {
@@ -51,7 +54,10 @@ public final class TransformAgent {
   static final ClassDesc classDesc_IsolateThread = ClassDesc.of("org.graalvm.nativeimage", "IsolateThread");
   static final ClassDesc classDesc_CTypedef = ClassDesc.of("org.graalvm.nativeimage.c.type", "CTypedef");
   static final ClassDesc classDesc_CEntryPoint = ClassDesc.of("org.graalvm.nativeimage.c.function", "CEntryPoint");
+  static final ClassDesc classDesc_CHeader = ClassDesc.of("org.graalvm.nativeimage.c", "CHeader");
   static final List<TypeAnnotation.TypePathComponent> targetPath = List.of();
+  static final SortedSet<String> hppCreatedSet = new ConcurrentSkipListSet();
+  static final SortedSet<String> hppObjectHandles = new ConcurrentSkipListSet();
 
   static final int getRank(ClassDesc desc) {
     int rank = 0;
@@ -71,12 +77,22 @@ public final class TransformAgent {
 
   static final String OBJECT_HANDLE_STRING(ClassDesc desc) {
     if(desc.isClassOrInterface()) {
-      return ("OBJECT_HANDLE_" + desc.packageName() + "_" + desc.displayName()).replace('.', '_').replace('$', '_');
+      final String ret = ("OBJECT_HANDLE_" + desc.packageName().replace('.', '_') + "_" + desc.displayName()).replace('.', '_').replace('$', '_');
+      hppObjectHandles.add(ret);
+      return ret;
     }
     if(desc.isArray()) {
       final int rank = getRank(desc);
       final ClassDesc base = getBaseComponentType(desc);
-      return "RANK_" + rank + "_" + base.packageName() + "_" + base.displayName().replace('.', '_').replace('$', '_');
+      if(base.isPrimitive()) {
+        final String ret = "RANK_" + rank + "_" + base.displayName().replace('.', '_').replace('$', '_');
+        hppObjectHandles.add(ret);
+        return ret;
+      } else {
+        final String ret = "RANK_" + rank + "_" + base.packageName().replace('.', '_') + "_" + base.displayName().replace('.', '_').replace('$', '_');
+        hppObjectHandles.add(ret);
+        return ret;
+      }
     }
     return null;
   }
@@ -167,15 +183,28 @@ public final class TransformAgent {
   public final static class XFM implements ClassTransform {
     final ClassModel classModel;
     final ClassDesc classDesc;
-    final String hash;
+    final String hashString;
+    final FileWriter fw_frwd_hpp;
+    final FileWriter fw_decl_hpp;
+    final FileWriter fw_impl_hpp;
+    final FileWriter fw_frmt_hpp;
+    final String cpp_full_struct_name;
+    final String java_full_name;
     int method_id = 0;
 
     // final boolean isInnerClass;
 
-    public XFM(final ClassModel arg_classModel, final String hash) {
-      classModel = arg_classModel;
-      classDesc = classModel.thisClass().asSymbol();
-      this.hash = hash;
+    public XFM(final ClassModel arg_classModel, final String arg_hashString) throws IOException {
+      this.classModel = arg_classModel;
+      this.classDesc = classModel.thisClass().asSymbol();
+      this.hashString = arg_hashString;
+      this.cpp_full_struct_name = classDesc.packageName().replace(".", "::") + "::" + classDesc.displayName().replace('$', '_');
+      this.java_full_name = classDesc.packageName() + '.' + classDesc.displayName().replace('$', '.');
+      this.fw_frwd_hpp = new FileWriter("./experimental/frwd_" + this.hashString + ".hpp");
+      this.fw_decl_hpp = new FileWriter("./experimental/decl_" + this.hashString + ".hpp");
+      this.fw_impl_hpp = new FileWriter("./experimental/impl_" + this.hashString + ".hpp");
+      this.fw_frmt_hpp = new FileWriter("./experimental/frmt_" + this.hashString + ".hpp");
+
       // System.out.println(classDesc.packageName() + "." + classDesc.displayName());
       // boolean maybeInnerClass = false;
       // for(final var attr: classModel.attributes()) {
@@ -199,8 +228,15 @@ public final class TransformAgent {
       if(!optAttrSourceFile.isPresent()) {
         classBuilder.with(SourceFileAttribute.of((classDesc.packageName() + "." + classDesc.displayName()).replace('.', '/') + ".class"));
       }
+      classBuilder.with(RuntimeVisibleAnnotationsAttribute.of(
+        Annotation.of(
+          classDesc_CHeader,
+          AnnotationElement.ofClass("value", ClassDesc.of("com.xilinx.rapidwright.examples", "FileToolsUpdateAllDataFiles$" + classDesc.packageName().replace('.', '_')))
+        )
+      ));
+
       final int current_method_id = method_id++;
-      final String methodName = "sha256_" + hash + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_DECONSTRUCTOR";
+      final String methodName = "sha256_" + hashString + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_DECONSTRUCTOR";
       // System.out.println("  " + methodName);
 
       final List<TypeAnnotation> typeAnnotations = new ArrayList<>();
@@ -210,6 +246,14 @@ public final class TransformAgent {
         Annotation.of(classDesc_CTypedef,
         AnnotationElement.ofString("name", OBJECT_HANDLE_STRING(classDesc)))
       ));
+
+      try {
+        fw_frwd_hpp.write("#pragma once\n");
+        fw_frwd_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+        fw_frwd_hpp.write("  struct " + classDesc.displayName().replace('$', '_') + ";\n");
+      } catch(IOException err) {
+
+      }
 
       classBuilder.withMethod(
         methodName,
@@ -264,7 +308,7 @@ public final class TransformAgent {
       final boolean isStatic = methodModel.flags().has(AccessFlag.STATIC);
 
       final int current_method_id = method_id++;
-      final String methodName = "sha256_" + hash + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_" + (isConstructor?"CONSTRUCTOR":methodModel.methodName().stringValue());
+      final String methodName = "sha256_" + hashString + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_" + (isConstructor?"CONSTRUCTOR":methodModel.methodName().stringValue());
       // System.out.println("  " + methodName);
 
       final MethodTypeDesc methodTypeDesc = methodModel.methodTypeSymbol();
@@ -352,23 +396,29 @@ public final class TransformAgent {
     @Override
     final public void atEnd(final ClassBuilder classBuilder) {
       
+      try {
+        fw_frwd_hpp.write("};\n");
+
+        this.fw_frwd_hpp.flush();
+        this.fw_decl_hpp.flush();
+        this.fw_impl_hpp.flush();
+        this.fw_frmt_hpp.flush();
+
+        this.fw_frwd_hpp.close();
+        this.fw_decl_hpp.close();
+        this.fw_impl_hpp.close();
+        this.fw_frmt_hpp.close();
+      } catch(IOException err) {
+
+      }
     }
   };
 
-  public final static byte[] b2b_xfm(final byte[] classBytes) throws NoSuchAlgorithmException {
-    final MessageDigest digest = MessageDigest.getInstance("SHA-256");
-    final byte[] hashBytes = digest.digest(classBytes);
-    final String hexString = HexFormat.of().formatHex(hashBytes);
-
-    final ClassFile cf = ClassFile.of();
-    final ClassModel classModel = cf.parse(classBytes);
-    final ClassDesc classDesc = classModel.thisClass().asSymbol();
-    if(classDesc.displayName().length() <= 1) return null;
-
-    final byte[] newClassBytes = cf.transformClass(classModel, new XFM(classModel, hexString));
-    return newClassBytes;
+  public final static byte[] b2b_xfm(final ClassModel classModel, final String hashString) throws IOException {
+    return ClassFile.of().transformClass(classModel, new XFM(classModel, hashString));
   }
 
+/*
   public final static void xJar(final String originalJar, final String modifiedJar) throws IOException, NoSuchAlgorithmException {
     final File inputJar = new File(originalJar);
     final File outputJar = new File(modifiedJar);
@@ -407,6 +457,7 @@ public final class TransformAgent {
     fosOutputJar.close();
     fisInputJar.close();
   }
+*/
 
   public final static void main(final String[] args) throws IOException {
     // System.out.println("TransformAgent");
@@ -441,9 +492,30 @@ public final class TransformAgent {
         if (className.contains("com/xilinx/rapidwright/")) {
           // System.out.println("XFM_ClassFileTransformer: '" + className + "', classfileBuffer: " + classfileBuffer.length);
           try {
-            final byte[] result = b2b_xfm(classfileBuffer);
-            return result;
+            final ClassFile cf = ClassFile.of();
+            final ClassModel classModel = cf.parse(classfileBuffer);
+            final ClassDesc classDesc = classModel.thisClass().asSymbol();
+            if(classDesc.displayName().length() <= 1) return null;
+
+            final String java_full_name = classDesc.packageName() + '.' + classDesc.displayName().replace('$', '.');
+            if(java_full_name.equals("com.xilinx.rapidwright.examples.RapidWrightAPI")) {
+              return null;
+            }
+
+            final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            final byte[] hashBytes = digest.digest(classfileBuffer);
+            final String hashString = HexFormat.of().formatHex(hashBytes);
+            if(hppCreatedSet.add(hashString)) {
+              final byte[] result = b2b_xfm(classModel, hashString);
+              Files.write(Path.of("./experimental/" + hashString + ".class"), result);
+
+              return result;
+            } else {
+              return null;
+            }
           } catch(NoSuchAlgorithmException err) {
+            return null;
+          } catch(IOException err) {
             return null;
           }
         }
@@ -452,7 +524,49 @@ public final class TransformAgent {
   }
 
   public static void premain(String agentArgs, Instrumentation inst) {
-    // System.out.println("Java Agent initialized. Registering TransformAgent...");
+    System.out.println("Java Agent initialized. Registering TransformAgent...");
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      System.out.println("Java Agent addShutdownHook...");
+        try {
+            final FileWriter hpp_frwd_list = new FileWriter("./experimental/frwd_ExperimentalAPI.hpp");
+            final FileWriter hpp_decl_list = new FileWriter("./experimental/decl_ExperimentalAPI.hpp");
+            final FileWriter hpp_impl_list = new FileWriter("./experimental/impl_ExperimentalAPI.hpp");
+            final FileWriter hpp_frmt_list = new FileWriter("./experimental/frmt_ExperimentalAPI.hpp");
+
+            hpp_frwd_list.write("#pragma once\n");
+            for(final String o: hppObjectHandles) {
+              hpp_frwd_list.write("struct STRUCT_" + o + ";\n");
+            }
+
+            for(final String o: hppObjectHandles) {
+              hpp_frwd_list.write("using " + o + " = STRUCT_" + o + " *;\n");
+            }
+
+            hpp_decl_list.write("#pragma once\n");
+            hpp_impl_list.write("#pragma once\n");
+            hpp_frmt_list.write("#pragma once\n");
+
+            for(final String h: hppCreatedSet) {
+              hpp_frwd_list.write("#include <frwd_" + h + ".hpp>\n");
+              hpp_decl_list.write("#include <decl_" + h + ".hpp>\n");
+              hpp_impl_list.write("#include <impl_" + h + ".hpp>\n");
+              hpp_frmt_list.write("#include <frmt_" + h + ".hpp>\n");
+            }
+
+            hpp_frwd_list.flush();
+            hpp_decl_list.flush();
+            hpp_impl_list.flush();
+            hpp_frmt_list.flush();
+
+            hpp_frwd_list.close();
+            hpp_decl_list.close();
+            hpp_impl_list.close();
+            hpp_frmt_list.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }));
     inst.addTransformer(new XFM_ClassFileTransformer());
   }
 }

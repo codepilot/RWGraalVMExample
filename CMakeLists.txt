@@ -54,16 +54,12 @@ execute_process(
 
 set(RapidWrightAPI_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/RapidWrightAPI.java")
 file(REMOVE "${RapidWrightAPI_JAVA_PATH}")
+file(REMOVE "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java")
+
 
 # file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/build/experimental")
 # file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
 # file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/bin/com/xilinx/rapidwright/experimental")
-
-file(
-  COPY_FILE
-  "${CMAKE_CURRENT_SOURCE_DIR}/FileToolsUpdateAllDataFiles.java"
-  "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
-)
 
 # file(
 #   COPY_FILE
@@ -83,6 +79,20 @@ file(MAKE_DIRECTORY "${REFLECTION_CONFIG_DIR}")
 file(COPY_FILE
   "${CMAKE_CURRENT_SOURCE_DIR}/reachability-metadata.json"
   "${REFLECTION_CONFIG_DIR}/reachability-metadata.json"
+)
+
+file(
+  COPY_FILE
+  "${CMAKE_CURRENT_SOURCE_DIR}/FileToolsUpdateAllDataFiles.java"
+  "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
+)
+
+message("BUILDING FileToolsUpdateAllDataFiles.java...")
+execute_process(COMMAND ${JAVAC_EXE}
+  -cp "${CLASS_PATH}"
+  "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
+  -d "${RAPIDWRIGHT_PATH}/bin"
+  WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
 )
 
 message("EXECUTING FileToolsUpdateAllDataFiles.java...")
@@ -125,6 +135,9 @@ execute_process(
 # execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "@${rapidwright_SOURCE_DIR}/build/java_file_list.txt" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
+
+file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/experimental)
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/experimental")
 
 message("EXECUTING NATIVE-IMAGE...")
 execute_process(
@@ -209,8 +222,8 @@ target_compile_features(ExperimentalAPI_st PUBLIC cxx_std_23)
 target_include_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-target_include_directories(ExperimentalAPI_mt PUBLIC "${rapidwright_SOURCE_DIR}/build/experimental")
-target_include_directories(ExperimentalAPI_st PUBLIC "${rapidwright_SOURCE_DIR}/build/experimental")
+target_include_directories(ExperimentalAPI_mt PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/experimental")
+target_include_directories(ExperimentalAPI_st PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/experimental")
 
 target_link_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

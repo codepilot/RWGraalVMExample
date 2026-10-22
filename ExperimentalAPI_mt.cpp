@@ -9,6 +9,7 @@
 
 int main(int argc, char **argv) {
   using Device = com::xilinx::rapidwright::device::Device;
+#if 0
   std::println("Device::RAPIDWRIGHT_YEAR_VERSION: {}", Device::RAPIDWRIGHT_YEAR_VERSION);
   std::println("Device::RAPIDWRIGHT_QUARTER_VERSION: {}", Device::RAPIDWRIGHT_QUARTER_VERSION);
   std::println("Device::RAPIDWRIGHT_MINOR_VERSION: {}", Device::RAPIDWRIGHT_MINOR_VERSION);
@@ -34,6 +35,6 @@ int main(int argc, char **argv) {
       }
     }};
   }
-  
+#endif  
   return 0;
 }

@@ -10,7 +10,7 @@
 int main(int argc, char **argv) {
   using Device = com::xilinx::rapidwright::device::Device;
   using TileColumnPattern = com::xilinx::rapidwright::device::helper::TileColumnPattern;
-
+#if 0
   std::println("Device::FRAMEWORK_NAME: {}", Device::FRAMEWORK_NAME);
   std::println("Device::RAPIDWRIGHT_VERSION: {}", Device::RAPIDWRIGHT_VERSION);
   std::println("Device::RAPIDWRIGHT_YEAR_VERSION: {}", Device::RAPIDWRIGHT_YEAR_VERSION);
@@ -43,5 +43,6 @@ int main(int argc, char **argv) {
   using MainEntrypoint = com::xilinx::rapidwright::MainEntrypoint;
   auto main_args{ ::java::lang::RANK_1_String(0) };
   MainEntrypoint::main(main_args);
+#endif
   return 0;
 }
