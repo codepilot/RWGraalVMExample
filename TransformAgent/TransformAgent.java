@@ -58,6 +58,7 @@ public final class TransformAgent {
   static final List<TypeAnnotation.TypePathComponent> targetPath = List.of();
   static final SortedSet<String> hppCreatedSet = new ConcurrentSkipListSet();
   static final SortedSet<String> hppObjectHandles = new ConcurrentSkipListSet();
+  static final SortedSet<String> hPackages = new ConcurrentSkipListSet();
 
   static final int getRank(ClassDesc desc) {
     int rank = 0;
@@ -97,8 +98,25 @@ public final class TransformAgent {
     return null;
   }
 
+  static final String C_TYPE(ClassDesc desc) {
+    if(desc.isPrimitive()) {
+      if(desc.equals(ConstantDescs.CD_int)) return "int32_t";
+      if(desc.equals(ConstantDescs.CD_long)) return "int64_t";
+      if(desc.equals(ConstantDescs.CD_float)) return "float";
+      if(desc.equals(ConstantDescs.CD_double)) return "double";
+      if(desc.equals(ConstantDescs.CD_short)) return "int16_t";
+      if(desc.equals(ConstantDescs.CD_byte)) return "uint8_t";
+      if(desc.equals(ConstantDescs.CD_char)) return "int16_t";
+      if(desc.equals(ConstantDescs.CD_boolean)) return "bool";
+      if(desc.equals(ConstantDescs.CD_void)) return "void";
+      return null;
+    } else {
+      return OBJECT_HANDLE_STRING(desc);
+    }
+  }
+
   static final void cb_ObjectHandles_getGlobal(final CodeBuilder codeBuilder, final int storeSlot) {
-    codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles));
+    codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles), true);
     codeBuilder.astore(storeSlot);
   }
 
@@ -235,6 +253,8 @@ public final class TransformAgent {
         )
       ));
 
+      hPackages.add(classDesc.packageName().replace('.', '_'));
+
       final int current_method_id = method_id++;
       final String methodName = "sha256_" + hashString + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_DECONSTRUCTOR";
       // System.out.println("  " + methodName);
@@ -249,8 +269,23 @@ public final class TransformAgent {
 
       try {
         fw_frwd_hpp.write("#pragma once\n");
+        fw_decl_hpp.write("#pragma once\n");
+        fw_impl_hpp.write("#pragma once\n");
+        fw_frmt_hpp.write("#pragma once\n");
+
         fw_frwd_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+        fw_decl_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+        fw_impl_hpp.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+
         fw_frwd_hpp.write("  struct " + classDesc.displayName().replace('$', '_') + ";\n");
+        fw_decl_hpp.write("  struct " + classDesc.displayName().replace('$', '_') + " {\n");
+        fw_decl_hpp.write("    OBJECT_HANDLE_" + classDesc.packageName().replace('.', '_') + "_" + classDesc.displayName().replace('$', '_') + " _objectHandle;\n\n");
+        fw_decl_hpp.write("    __forceinline ~" + classDesc.displayName().replace('$', '_') + "() noexcept;\n");
+
+        fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::~" + classDesc.displayName().replace('$', '_') + "() noexcept {\n");
+        fw_impl_hpp.write("    " + methodName + "(localThread.get(), _objectHandle);\n");
+        fw_impl_hpp.write("  }\n\n");
+
       } catch(IOException err) {
 
       }
@@ -283,7 +318,7 @@ public final class TransformAgent {
   
               codeBuilder.return_();
             } else {
-              codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles));
+              codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles), true);
               codeBuilder.aload(slot_arg_ObjectHandle);
               codeBuilder.invokeinterface(classDesc_ObjectHandles, "destroy", MethodTypeDesc.of(ConstantDescs.CD_void, classDesc_ObjectHandle));
               codeBuilder.return_();
@@ -316,6 +351,36 @@ public final class TransformAgent {
       
       final List<TypeAnnotation> typeAnnotations = new ArrayList<>();
       MethodTypeDesc addedMethodTypeDesc = transformMethodTypeDesc(classModel, methodModel, typeAnnotations);
+
+      try {
+        fw_decl_hpp.write("    __forceinline " + classDesc.displayName().replace('$', '_') + "(");
+        fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::" + classDesc.displayName().replace('$', '_') + "(");
+
+        for(int parameter_index = 0; parameter_index < methodParameterCount; parameter_index++) {
+          final ClassDesc paramType = methodTypeDesc.parameterType(parameter_index);
+          if(parameter_index > 0) {
+            fw_decl_hpp.write(", ");
+            fw_impl_hpp.write(", ");
+          }
+
+          fw_decl_hpp.write(C_TYPE(paramType));
+          fw_impl_hpp.write(C_TYPE(paramType) + " param_" + parameter_index);
+        }
+
+        fw_decl_hpp.write(") noexcept;\n");
+
+        fw_impl_hpp.write(") noexcept:\n    _objectHandle{" + methodName + "(localThread.get()");
+
+        for(int parameter_index = 0; parameter_index < methodParameterCount; parameter_index++) {
+          final ClassDesc paramType = methodTypeDesc.parameterType(parameter_index);
+          fw_impl_hpp.write(", ");
+          fw_impl_hpp.write("param_" + parameter_index);
+        }
+        fw_impl_hpp.write(")} { }\n\n");
+
+      } catch(IOException err) {
+
+      }
 
       classBuilder.withMethod(
         methodName,
@@ -397,7 +462,11 @@ public final class TransformAgent {
     final public void atEnd(final ClassBuilder classBuilder) {
       
       try {
+        fw_decl_hpp.write("  };\n");
+
         fw_frwd_hpp.write("};\n");
+        fw_decl_hpp.write("};\n");
+        fw_impl_hpp.write("};\n");
 
         this.fw_frwd_hpp.flush();
         this.fw_decl_hpp.flush();
@@ -534,6 +603,10 @@ public final class TransformAgent {
             final FileWriter hpp_frmt_list = new FileWriter("./experimental/frmt_ExperimentalAPI.hpp");
 
             hpp_frwd_list.write("#pragma once\n");
+            hpp_decl_list.write("#pragma once\n");
+            hpp_impl_list.write("#pragma once\n");
+            hpp_frmt_list.write("#pragma once\n");
+
             for(final String o: hppObjectHandles) {
               hpp_frwd_list.write("struct STRUCT_" + o + ";\n");
             }
@@ -542,9 +615,9 @@ public final class TransformAgent {
               hpp_frwd_list.write("using " + o + " = STRUCT_" + o + " *;\n");
             }
 
-            hpp_decl_list.write("#pragma once\n");
-            hpp_impl_list.write("#pragma once\n");
-            hpp_frmt_list.write("#pragma once\n");
+            for(final String h: hPackages) {
+              hpp_impl_list.write("#include <" + h + ".h>\n");
+            }
 
             for(final String h: hppCreatedSet) {
               hpp_frwd_list.write("#include <frwd_" + h + ".hpp>\n");

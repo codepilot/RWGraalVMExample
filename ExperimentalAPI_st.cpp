@@ -9,7 +9,12 @@
 
 int main(int argc, char **argv) {
   using Device = com::xilinx::rapidwright::device::Device;
+  using Design = com::xilinx::rapidwright::design::Design;
   using TileColumnPattern = com::xilinx::rapidwright::device::helper::TileColumnPattern;
+
+  {
+    Design design{};
+  }
 #if 0
   std::println("Device::FRAMEWORK_NAME: {}", Device::FRAMEWORK_NAME);
   std::println("Device::RAPIDWRIGHT_VERSION: {}", Device::RAPIDWRIGHT_VERSION);

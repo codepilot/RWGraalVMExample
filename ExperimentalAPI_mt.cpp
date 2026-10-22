@@ -9,6 +9,12 @@
 
 int main(int argc, char **argv) {
   using Device = com::xilinx::rapidwright::device::Device;
+  using Design = com::xilinx::rapidwright::design::Design;
+  using TileColumnPattern = com::xilinx::rapidwright::device::helper::TileColumnPattern;
+
+  {
+    Design design{};
+  }
 #if 0
   std::println("Device::RAPIDWRIGHT_YEAR_VERSION: {}", Device::RAPIDWRIGHT_YEAR_VERSION);
   std::println("Device::RAPIDWRIGHT_QUARTER_VERSION: {}", Device::RAPIDWRIGHT_QUARTER_VERSION);
@@ -35,6 +41,6 @@ int main(int argc, char **argv) {
       }
     }};
   }
-#endif  
+#endif
   return 0;
 }
