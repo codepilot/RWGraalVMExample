@@ -355,16 +355,17 @@ public final class TransformAgent {
     }
 
     final private void acceptFieldModel(final ClassBuilder classBuilder, final FieldModel fieldModel) {
+      if(!fieldModel.flags().has(AccessFlag.PUBLIC)) return;
+
       final String fieldName = fieldModel.fieldName().stringValue();
       if(fieldName.length() <= 1) return;
 
       final boolean isStatic = fieldModel.flags().has(AccessFlag.STATIC);
-      if(isStatic) return;
 
       final int current_method_id = method_id++;
       final String methodName = "sha256_" + hashString + "_" + (classDesc.packageName() + "." + classDesc.displayName()).replace('.', '_').replace('$', '_') + "_id_" + current_method_id + "_" + fieldName;
 
-      MethodTypeDesc methodTypeDesc = MethodTypeDesc.of(fieldModel.fieldTypeSymbol(), classDesc_IsolateThread, classDesc);
+      MethodTypeDesc methodTypeDesc = MethodTypeDesc.of(fieldModel.fieldTypeSymbol(), classDesc_IsolateThread);
       final List<TypeAnnotation> typeAnnotations = new ArrayList<>();
 
       if(!methodTypeDesc.returnType().isPrimitive()) {
@@ -377,7 +378,8 @@ public final class TransformAgent {
         // methodTypeDesc = methodTypeDesc.changeReturnType(classDesc_ObjectHandle);
       }
 
-      {
+      if(!isStatic) {
+        methodTypeDesc = methodTypeDesc.insertParameterTypes(1, classDesc);
         typeAnnotations.add(TypeAnnotation.of(
           TargetInfo.ofMethodFormalParameter(1),
           targetPath,
@@ -387,10 +389,11 @@ public final class TransformAgent {
       }
 
       try {
-        fw_decl_hpp.write("    __forceinline " + C_TYPE(methodTypeDesc.returnType()) + " get_field_" + fieldName + "() noexcept;\n");
+        final String cpp_method_name = "get_" + (isStatic?"static_":"") + "field_" + fieldName;
+        fw_decl_hpp.write("    __forceinline " + (isStatic?"static ":"") + C_TYPE(methodTypeDesc.returnType()) + " " + cpp_method_name + "() noexcept;\n");
 
-        fw_impl_hpp.write("  __forceinline " + C_TYPE(methodTypeDesc.returnType()) + " " + classDesc.displayName().replace('$', '_') + "::get_field_" + fieldName + "() noexcept {\n");
-        fw_impl_hpp.write("    " + methodName + "(localThread.get(), _objectHandle);\n");
+        fw_impl_hpp.write("  __forceinline " + C_TYPE(methodTypeDesc.returnType()) + " " + classDesc.displayName().replace('$', '_') + "::" + cpp_method_name + "() noexcept {\n");
+        fw_impl_hpp.write("    return " + methodName + "(localThread.get()" + (isStatic?"":", _objectHandle") + ");\n");
         fw_impl_hpp.write("  }\n\n");
       } catch(IOException err) {
 
@@ -414,16 +417,21 @@ public final class TransformAgent {
             int nextAvailableSlot = 0;
 
             final int slot_arg_IsolateThread = nextAvailableSlot++;
-            final int slot_arg_this = nextAvailableSlot++;
-            final int slot_this = nextAvailableSlot++;
+            if(!isStatic) {
+              final int slot_arg_this = nextAvailableSlot++;
+              final int slot_this = nextAvailableSlot++;
 
-            codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles), true);
+              codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles), true);
 
-            codeBuilder.aload(slot_arg_this);
-            codeBuilder.invokeinterface(classDesc_ObjectHandles, "get", MethodTypeDesc.of(ConstantDescs.CD_Object, classDesc_ObjectHandle));
-            codeBuilder.checkcast(classDesc);
+              codeBuilder.aload(slot_arg_this);
+              codeBuilder.invokeinterface(classDesc_ObjectHandles, "get", MethodTypeDesc.of(ConstantDescs.CD_Object, classDesc_ObjectHandle));
+              codeBuilder.checkcast(classDesc);
 
-            codeBuilder.getfield(classDesc, fieldName, fieldModel.fieldTypeSymbol());
+              codeBuilder.getfield(classDesc, fieldName, fieldModel.fieldTypeSymbol());
+            } else {
+              codeBuilder.getstatic(classDesc, fieldName, fieldModel.fieldTypeSymbol());
+            }
+
             if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_int)) codeBuilder.ireturn();
             if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_long)) codeBuilder.lreturn();
             if(fieldModel.fieldTypeSymbol().equals(ConstantDescs.CD_float)) codeBuilder.freturn();
@@ -439,6 +447,8 @@ public final class TransformAgent {
     }
 
     final private void acceptMethodModel(final ClassBuilder classBuilder, final MethodModel methodModel) {
+      if(!methodModel.flags().has(AccessFlag.PUBLIC)) return;
+
       if(methodModel.methodName().stringValue().equals("<clinit>")) return;
 
       final boolean isConstructor = methodModel.methodName().stringValue().equals("<init>");
