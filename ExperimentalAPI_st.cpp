@@ -16,6 +16,11 @@ int main(int argc, char **argv) {
   {
     Design design{};
   }
+  std::println("Device::RAPIDWRIGHT_YEAR_VERSION: {}", Device::get_static_field_RAPIDWRIGHT_YEAR_VERSION());
+  std::println("Device::RAPIDWRIGHT_QUARTER_VERSION: {}", Device::get_static_field_RAPIDWRIGHT_QUARTER_VERSION());
+  std::println("Device::RAPIDWRIGHT_MINOR_VERSION: {}", Device::get_static_field_RAPIDWRIGHT_MINOR_VERSION());
+  std::println("Device::QUIET_MESSAGE: {}", Device::get_static_field_QUIET_MESSAGE());
+
 #if 0
   std::println("Device::FRAMEWORK_NAME: {}", Device::FRAMEWORK_NAME);
   std::println("Device::RAPIDWRIGHT_VERSION: {}", Device::RAPIDWRIGHT_VERSION);
