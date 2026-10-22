@@ -85,6 +85,7 @@ public final class TransformAgent {
   static final List<TypeAnnotation.TypePathComponent> targetPath = List.of();
   static final SortedSet<String> hppCreatedSet = new ConcurrentSkipListSet();
   static final SortedSet<String> hppObjectHandles = new ConcurrentSkipListSet();
+  static final SortedSet<String> hppObjectFiles = new ConcurrentSkipListSet();
   static final SortedSet<String> hPackages = new ConcurrentSkipListSet();
 
   static final int getRank(ClassDesc desc) {
@@ -103,29 +104,29 @@ public final class TransformAgent {
     return desc;
   }
 
-  static final String OBJECT_HANDLE_STRING(ClassDesc desc) {
+  static final String OBJECT_HANDLE_STRING(final ClassDesc desc) {
+    if(!desc.isPrimitive()) {
+      hppObjectHandles.add(desc.descriptorString());
+    }
     if(desc.isClassOrInterface()) {
       final String ret = ("OBJECT_HANDLE_" + desc.packageName().replace('.', '_') + "_" + desc.displayName()).replace('.', '_').replace('$', '_');
-      hppObjectHandles.add(ret);
       return ret;
     }
     if(desc.isArray()) {
       final int rank = getRank(desc);
       final ClassDesc base = getBaseComponentType(desc);
       if(base.isPrimitive()) {
-        final String ret = "RANK_" + rank + "_" + base.displayName().replace('.', '_').replace('$', '_');
-        hppObjectHandles.add(ret);
+        final String ret = "OBJECT_HANDLE_RANK_" + rank + "_" + base.displayName().replace('.', '_').replace('$', '_');
         return ret;
       } else {
-        final String ret = "RANK_" + rank + "_" + base.packageName().replace('.', '_') + "_" + base.displayName().replace('.', '_').replace('$', '_');
-        hppObjectHandles.add(ret);
+        final String ret = "OBJECT_HANDLE_RANK_" + rank + "_" + base.packageName().replace('.', '_') + "_" + base.displayName().replace('.', '_').replace('$', '_');
         return ret;
       }
     }
     return null;
   }
 
-  static final String C_TYPE(ClassDesc desc) {
+  static final String C_TYPE(final ClassDesc desc) {
     if(desc.isPrimitive()) {
       if(desc.equals(ConstantDescs.CD_int)) return "int32_t";
       if(desc.equals(ConstantDescs.CD_long)) return "int64_t";
@@ -140,6 +141,43 @@ public final class TransformAgent {
     } else {
       return OBJECT_HANDLE_STRING(desc);
     }
+  }
+
+  static final String CPP_TYPE(final ClassDesc desc) {
+    if(desc.isPrimitive()) {
+      if(desc.equals(ConstantDescs.CD_int)) return "int32_t";
+      if(desc.equals(ConstantDescs.CD_long)) return "int64_t";
+      if(desc.equals(ConstantDescs.CD_float)) return "float";
+      if(desc.equals(ConstantDescs.CD_double)) return "double";
+      if(desc.equals(ConstantDescs.CD_short)) return "int16_t";
+      if(desc.equals(ConstantDescs.CD_byte)) return "uint8_t";
+      if(desc.equals(ConstantDescs.CD_char)) return "int16_t";
+      if(desc.equals(ConstantDescs.CD_boolean)) return "bool";
+      if(desc.equals(ConstantDescs.CD_void)) return "void";
+      return null;
+    } else {
+      hppObjectHandles.add(desc.descriptorString());
+      if(desc.isClassOrInterface()) {
+        final String ret = ((desc.packageName().replace(".", "::")) + "::" + (desc.displayName().replace('$', '_')));
+        return ret;
+      }
+      if(desc.isArray()) {
+        final int rank = getRank(desc);
+        final ClassDesc base = getBaseComponentType(desc);
+        if(base.isPrimitive()) {
+          final String ret = "RANK_" + rank + "_" + base.displayName().replace('.', '_').replace('$', '_');
+          return ret;
+        } else {
+          final String ret = base.packageName().replace(".", "::") + "::" + "RANK_" + rank + "_" + base.displayName().replace('.', '_').replace('$', '_');
+          return ret;
+        }
+      }
+      return null;
+    }
+  }
+
+  static final String CPP_TYPE_ARG(final ClassDesc desc) {
+    return (desc.isPrimitive()?"":"const ") + CPP_TYPE(desc) + (desc.isPrimitive()?"":"&");
   }
 
   static final void cb_ObjectHandles_getGlobal(final CodeBuilder codeBuilder, final int storeSlot) {
@@ -249,6 +287,7 @@ public final class TransformAgent {
       this.fw_decl_hpp = new FileWriter("./experimental/decl_" + this.hashString + ".hpp");
       this.fw_impl_hpp = new FileWriter("./experimental/impl_" + this.hashString + ".hpp");
       this.fw_frmt_hpp = new FileWriter("./experimental/frmt_" + this.hashString + ".hpp");
+      hppObjectFiles.add(classDesc.descriptorString());
 
       // System.out.println(classDesc.packageName() + "." + classDesc.displayName());
       // boolean maybeInnerClass = false;
@@ -307,16 +346,20 @@ public final class TransformAgent {
         fw_frwd_hpp.write("  struct " + classDesc.displayName().replace('$', '_') + ";\n");
         fw_decl_hpp.write("  struct " + classDesc.displayName().replace('$', '_') + " {\n");
         fw_decl_hpp.write("    OBJECT_HANDLE_" + classDesc.packageName().replace('.', '_') + "_" + classDesc.displayName().replace('$', '_') + " _objectHandle;\n\n");
+        fw_decl_hpp.write("    __forceinline explicit " + classDesc.displayName().replace('$', '_') + "(OBJECT_HANDLE_" + classDesc.packageName().replace('.', '_') + "_" + classDesc.displayName().replace('$', '_') + " objectHandle) noexcept;\n");
         fw_decl_hpp.write("    __forceinline ~" + classDesc.displayName().replace('$', '_') + "() noexcept;\n");
 
+        fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::" + classDesc.displayName().replace('$', '_') + "(OBJECT_HANDLE_" + classDesc.packageName().replace('.', '_') + "_" + classDesc.displayName().replace('$', '_') + " objectHandle) noexcept: _objectHandle{objectHandle} {\n");
+        fw_impl_hpp.write("  }\n\n");
+
         fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::~" + classDesc.displayName().replace('$', '_') + "() noexcept {\n");
-        fw_impl_hpp.write("    " + methodName + "(localThread.get(), _objectHandle);\n");
+        fw_impl_hpp.write("    ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
         fw_impl_hpp.write("  }\n\n");
 
       } catch(IOException err) {
 
       }
-
+      /*
       classBuilder.withMethod(
         methodName,
         MethodTypeDesc.of(ConstantDescs.CD_void, classDesc_IsolateThread, classDesc_ObjectHandle),
@@ -353,6 +396,7 @@ public final class TransformAgent {
           });
         }
       );
+      */
     }
 
     final private void acceptFieldModel(final ClassBuilder classBuilder, final FieldModel fieldModel) {
@@ -390,10 +434,10 @@ public final class TransformAgent {
 
       try {
         final String cpp_method_name = "get_" + (isStatic?"static_":"") + "field_" + fieldName;
-        fw_decl_hpp.write("    __forceinline " + (isStatic?"static ":"") + C_TYPE(fieldModel.fieldTypeSymbol()) + " " + cpp_method_name + "() noexcept;\n");
+        fw_decl_hpp.write("    __forceinline " + (isStatic?"static ":"") + CPP_TYPE(fieldModel.fieldTypeSymbol()) + " " + cpp_method_name + "() noexcept;\n");
 
-        fw_impl_hpp.write("  __forceinline " + C_TYPE(fieldModel.fieldTypeSymbol()) + " " + classDesc.displayName().replace('$', '_') + "::" + cpp_method_name + "() noexcept {\n");
-        fw_impl_hpp.write("    return " + methodName + "(localThread.get()" + (isStatic?"":", _objectHandle") + ");\n");
+        fw_impl_hpp.write("  __forceinline " + CPP_TYPE(fieldModel.fieldTypeSymbol()) + " " + classDesc.displayName().replace('$', '_') + "::" + cpp_method_name + "() noexcept {\n");
+        fw_impl_hpp.write("    return " + (fieldModel.fieldTypeSymbol().isPrimitive()?"":(CPP_TYPE(fieldModel.fieldTypeSymbol()) + "(")) + methodName + "(localThread.get()" + (isStatic?"":", _objectHandle") + ")" + (fieldModel.fieldTypeSymbol().isPrimitive()?"":")") +";\n");
         fw_impl_hpp.write("  }\n\n");
       } catch(IOException err) {
 
@@ -480,8 +524,8 @@ public final class TransformAgent {
       try {
         final String cpp_class_name = classDesc.displayName().replace('$', '_');
         final String cpp_method_name = (isConstructor?cpp_class_name:originalMethodName);
-        final String cpp_return_type = (isConstructor?"":(C_TYPE(methodModel.methodTypeSymbol().returnType()) + " "));
-        fw_decl_hpp.write("    __forceinline " + cpp_return_type + cpp_method_name + "(");
+        final String cpp_return_type = (isConstructor?"":(CPP_TYPE(methodModel.methodTypeSymbol().returnType()) + " "));
+        fw_decl_hpp.write("    __forceinline " + (isConstructor?"explicit ":"") + ((isStatic && (!isConstructor))?"static ":"") + cpp_return_type + cpp_method_name + "(");
         fw_impl_hpp.write("  __forceinline " + cpp_return_type + cpp_class_name + "::" + cpp_method_name + "(");
 
         for(int parameter_index = 0; parameter_index < methodParameterCount; parameter_index++) {
@@ -491,8 +535,8 @@ public final class TransformAgent {
             fw_impl_hpp.write(", ");
           }
 
-          fw_decl_hpp.write(C_TYPE(paramType));
-          fw_impl_hpp.write(C_TYPE(paramType) + " param_" + parameter_index);
+          fw_decl_hpp.write(CPP_TYPE_ARG(paramType));
+          fw_impl_hpp.write(CPP_TYPE_ARG(paramType) + " param_" + parameter_index);
         }
 
         fw_decl_hpp.write(") noexcept;\n");
@@ -500,18 +544,18 @@ public final class TransformAgent {
         if(isConstructor) {
           fw_impl_hpp.write(") noexcept:\n    _objectHandle{" + methodName + "(localThread.get()");
         } else {
-          fw_impl_hpp.write(") noexcept {\n    " + methodName + "(localThread.get()" + (isStatic?"":", _objectHandle"));
+          fw_impl_hpp.write(") noexcept {\n    " + (methodTypeDesc.returnType().equals(ConstantDescs.CD_void)?"":("return " + (methodTypeDesc.returnType().isPrimitive()?"":(CPP_TYPE(methodTypeDesc.returnType()) + "(")))) + methodName + "(localThread.get()" + (isStatic?"":", _objectHandle"));
         }
 
         for(int parameter_index = 0; parameter_index < methodParameterCount; parameter_index++) {
           final ClassDesc paramType = methodTypeDesc.parameterType(parameter_index);
           fw_impl_hpp.write(", ");
-          fw_impl_hpp.write("param_" + parameter_index);
+          fw_impl_hpp.write("param_" + parameter_index + (paramType.isPrimitive()?"":"._objectHandle"));
         }
         if(isConstructor) {
           fw_impl_hpp.write(")} {\n  }\n\n");
         } else {
-          fw_impl_hpp.write(");\n  }\n\n");
+          fw_impl_hpp.write(")" + (methodTypeDesc.returnType().isPrimitive()?"":")") +";\n  }\n\n");
         }
 
       } catch(IOException err) {
@@ -866,7 +910,7 @@ public final class TransformAgent {
       final Class<?> classBeingRedefined, 
       final ProtectionDomain protectionDomain, 
       final byte[] classfileBuffer) throws IllegalClassFormatException {
-        if (className.contains("com/xilinx/rapidwright/")) {
+        if (className.startsWith("com/xilinx/rapidwright/")) {
           // System.out.println("XFM_ClassFileTransformer: '" + className + "', classfileBuffer: " + classfileBuffer.length);
           try {
             final ClassFile cf = ClassFile.of();
@@ -875,6 +919,9 @@ public final class TransformAgent {
             if(classDesc.displayName().length() <= 1) return null;
 
             final String java_full_name = classDesc.packageName() + '.' + classDesc.displayName().replace('$', '.');
+            if(java_full_name.equals("com.xilinx.rapidwright.examples.FileToolsUpdateAllDataFiles")) {
+              return null;
+            }
             if(java_full_name.equals("com.xilinx.rapidwright.examples.RapidWrightAPI")) {
               return null;
             }
@@ -916,11 +963,90 @@ public final class TransformAgent {
             hpp_frmt_list.write("#pragma once\n");
 
             for(final String o: hppObjectHandles) {
-              hpp_frwd_list.write("struct STRUCT_" + o + ";\n");
+              final ClassDesc desc = ClassDesc.ofDescriptor(o);
+              if(desc.isClassOrInterface()) {
+                hpp_frwd_list.write("struct STRUCT_" + (desc.packageName().replace('.', '_') + "_" + desc.displayName()).replace('.', '_').replace('$', '_') + ";\n");
+              } else if(desc.isArray()) {
+                final int rank = getRank(desc);
+                final ClassDesc base = getBaseComponentType(desc);
+                if(base.isPrimitive()) {
+                  hpp_frwd_list.write("struct STRUCT_RANK_" + rank + "_" + base.displayName().replace('.', '_').replace('$', '_') + ";\n");
+                } else {
+                  hpp_frwd_list.write("struct STRUCT_RANK_" + rank + "_" + base.packageName().replace('.', '_') + "_" + base.displayName().replace('.', '_').replace('$', '_') + ";\n");
+                }
+              }
             }
 
             for(final String o: hppObjectHandles) {
-              hpp_frwd_list.write("using " + o + " = STRUCT_" + o + " *;\n");
+              final ClassDesc desc = ClassDesc.ofDescriptor(o);
+              if(desc.isClassOrInterface()) {
+                final String flat_desc = (desc.packageName().replace('.', '_') + "_" + desc.displayName()).replace('.', '_').replace('$', '_');
+                hpp_frwd_list.write("using OBJECT_HANDLE_" + flat_desc + " =  STRUCT_" + flat_desc + " *;\n");
+              } else if(desc.isArray()) {
+                final int rank = getRank(desc);
+                final ClassDesc base = getBaseComponentType(desc);
+                if(base.isPrimitive()) {
+                  final String flat_desc = base.displayName().replace('.', '_').replace('$', '_');
+                  hpp_frwd_list.write("using OBJECT_HANDLE_RANK_" + rank + "_" + flat_desc + " = STRUCT_RANK_" + rank + "_" + flat_desc + " *;\n");
+                } else {
+                  final String flat_desc = base.packageName().replace('.', '_') + "_" + base.displayName().replace('.', '_').replace('$', '_');
+                  hpp_frwd_list.write("using OBJECT_HANDLE_RANK_" + rank + "_" + flat_desc + " = STRUCT_RANK_" + rank + "_" + flat_desc + " *;\n");
+                }
+              }
+            }
+
+            for(final String o: hppObjectHandles) {
+              if(hppObjectFiles.contains(o)) continue;
+              final ClassDesc classDesc = ClassDesc.ofDescriptor(o);
+              
+              if(classDesc.isClassOrInterface()) {
+                hpp_frwd_list.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+                hpp_decl_list.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+                hpp_impl_list.write("namespace " + classDesc.packageName().replace(".", "::") + " {\n");
+                final String flat_desc = classDesc.displayName().replace('$', '_');
+                hpp_frwd_list.write("  struct " + flat_desc + ";\n");
+                hpp_decl_list.write("  struct " + flat_desc + " {\n");
+
+                hpp_decl_list.write("    OBJECT_HANDLE_" + classDesc.packageName().replace('.', '_') + "_" + flat_desc + " _objectHandle;\n\n");
+                hpp_decl_list.write("    __forceinline ~" + flat_desc + "() noexcept;\n");
+                hpp_decl_list.write("  };\n");
+
+                hpp_impl_list.write("  __forceinline " + flat_desc + "::~" + flat_desc + "() noexcept {\n");
+                hpp_impl_list.write("    ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
+                hpp_impl_list.write("  }\n\n");
+                hpp_frwd_list.write("};\n");
+                hpp_decl_list.write("};\n");
+                hpp_impl_list.write("};\n");
+              }
+              if(classDesc.isArray()) {
+                final int rank = getRank(classDesc);
+                final ClassDesc base = getBaseComponentType(classDesc);
+
+                if(!base.isPrimitive()) {
+                  hpp_frwd_list.write("namespace " + base.packageName().replace(".", "::") + " {\n");
+                  hpp_decl_list.write("namespace " + base.packageName().replace(".", "::") + " {\n");
+                  hpp_impl_list.write("namespace " + base.packageName().replace(".", "::") + " {\n");
+                }
+
+                final String flat_desc = "RANK_" + rank + "_" + base.displayName().replace('.', '_').replace('$', '_');
+                hpp_frwd_list.write("  struct " + flat_desc + ";\n");
+                hpp_decl_list.write("  struct " + flat_desc + " {\n");
+
+                hpp_decl_list.write("    OBJECT_HANDLE_RANK_" + rank + "_" + (base.isPrimitive()?"":(base.packageName().replace('.', '_') + "_")) + base.displayName().replace('.', '_').replace('$', '_') + " _objectHandle;\n\n");
+                hpp_decl_list.write("    __forceinline ~" + flat_desc + "() noexcept;\n");
+                hpp_decl_list.write("  };\n");
+
+                hpp_impl_list.write("  __forceinline " + flat_desc + "::~" + flat_desc + "() noexcept {\n");
+                hpp_impl_list.write("    ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
+                hpp_impl_list.write("  }\n\n");
+
+                if(!base.isPrimitive()) {
+                  hpp_frwd_list.write("};\n");
+                  hpp_decl_list.write("};\n");
+                  hpp_impl_list.write("};\n");
+                }
+              }
+
             }
 
             for(final String h: hPackages) {

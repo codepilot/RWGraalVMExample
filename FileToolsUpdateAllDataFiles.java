@@ -1,9 +1,13 @@
 package com.xilinx.rapidwright.examples;
 
-import com.xilinx.rapidwright.util.FileTools;
-import com.xilinx.rapidwright.device.Device;
 // import com.xilinx.rapidwright.MainEntrypoint;
+import com.xilinx.rapidwright.device.Device;
+import com.xilinx.rapidwright.util.FileTools;
 import org.graalvm.nativeimage.c.CHeader;
+import org.graalvm.nativeimage.c.function.CEntryPoint;
+import org.graalvm.nativeimage.ObjectHandle;
+import org.graalvm.nativeimage.ObjectHandles;
+import org.graalvm.nativeimage.IsolateThread;
 
 @SuppressWarnings({"preview","deprecation","removal"})
 public class FileToolsUpdateAllDataFiles {
@@ -43,6 +47,11 @@ public class FileToolsUpdateAllDataFiles {
   public final static class com_xilinx_rapidwright_util_function implements CHeader.Header { @Override public String name() { return "com_xilinx_rapidwright_util_function"; }}
   public final static class com_xilinx_rapidwright_util_performance_evaluation implements CHeader.Header { @Override public String name() { return "com_xilinx_rapidwright_util_performance_evaluation"; }}
   public final static class com_xilinx_rapidwright_util_rwroute implements CHeader.Header { @Override public String name() { return "com_xilinx_rapidwright_util_rwroute"; }}
+
+  @CEntryPoint(name = "ObjectHandles_getGlobal_destroy", include = CEntryPoint.AlwaysIncluded.class)
+  public static void ObjectHandles_getGlobal_destroy(final IsolateThread thread, final ObjectHandle objectHandle) {
+    ObjectHandles.getGlobal().destroy(objectHandle);
+  }
 
   public static void main(String[] args) throws Throwable {
     FileTools.updateAllDataFiles();
