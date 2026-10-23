@@ -353,7 +353,7 @@ public final class TransformAgent {
         fw_impl_hpp.write("  }\n\n");
 
         fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::~" + classDesc.displayName().replace('$', '_') + "() noexcept {\n");
-        fw_impl_hpp.write("    ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
+        fw_impl_hpp.write("    org_graalvm_nativeimage_ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
         fw_impl_hpp.write("  }\n\n");
 
       } catch(IOException err) {
@@ -962,6 +962,10 @@ public final class TransformAgent {
             hpp_impl_list.write("#pragma once\n");
             hpp_frmt_list.write("#pragma once\n");
 
+            hpp_impl_list.write("#include <org_graalvm_nativeimage_c_type_CTypeConversion.h>\n");
+            hpp_impl_list.write("#include <org_graalvm_nativeimage_ObjectHandles.h>\n");
+            hpp_impl_list.write("#include <org_graalvm_nativeimage_UnmanagedMemory.h>\n");
+
             for(final String o: hppObjectHandles) {
               final ClassDesc desc = ClassDesc.ofDescriptor(o);
               if(desc.isClassOrInterface()) {
@@ -1012,7 +1016,7 @@ public final class TransformAgent {
                 hpp_decl_list.write("  };\n");
 
                 hpp_impl_list.write("  __forceinline " + flat_desc + "::~" + flat_desc + "() noexcept {\n");
-                hpp_impl_list.write("    ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
+                hpp_impl_list.write("    org_graalvm_nativeimage_ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
                 hpp_impl_list.write("  }\n\n");
                 hpp_frwd_list.write("};\n");
                 hpp_decl_list.write("};\n");
@@ -1037,7 +1041,7 @@ public final class TransformAgent {
                 hpp_decl_list.write("  };\n");
 
                 hpp_impl_list.write("  __forceinline " + flat_desc + "::~" + flat_desc + "() noexcept {\n");
-                hpp_impl_list.write("    ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
+                hpp_impl_list.write("    org_graalvm_nativeimage_ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
                 hpp_impl_list.write("  }\n\n");
 
                 if(!base.isPrimitive()) {

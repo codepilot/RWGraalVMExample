@@ -5,9 +5,17 @@ import com.xilinx.rapidwright.device.Device;
 import com.xilinx.rapidwright.util.FileTools;
 import org.graalvm.nativeimage.c.CHeader;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
+import org.graalvm.nativeimage.c.type.CCharPointer;
+import org.graalvm.nativeimage.c.type.CConst;
+import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.graalvm.nativeimage.c.type.CTypedef;
 import org.graalvm.nativeimage.ObjectHandle;
 import org.graalvm.nativeimage.ObjectHandles;
 import org.graalvm.nativeimage.IsolateThread;
+import org.graalvm.nativeimage.UnmanagedMemory;
+import org.graalvm.word.PointerBase;
+import org.graalvm.word.UnsignedWord;
+import org.graalvm.word.WordFactory;
 
 @SuppressWarnings({"preview","deprecation","removal"})
 public class FileToolsUpdateAllDataFiles {
@@ -48,9 +56,56 @@ public class FileToolsUpdateAllDataFiles {
   public final static class com_xilinx_rapidwright_util_performance_evaluation implements CHeader.Header { @Override public String name() { return "com_xilinx_rapidwright_util_performance_evaluation"; }}
   public final static class com_xilinx_rapidwright_util_rwroute implements CHeader.Header { @Override public String name() { return "com_xilinx_rapidwright_util_rwroute"; }}
 
-  @CEntryPoint(name = "ObjectHandles_getGlobal_destroy", include = CEntryPoint.AlwaysIncluded.class)
-  public static void ObjectHandles_getGlobal_destroy(final IsolateThread thread, final ObjectHandle objectHandle) {
+  public final static class org_graalvm_nativeimage_UnmanagedMemory implements CHeader.Header { @Override public String name() { return "org_graalvm_nativeimage_UnmanagedMemory"; }}
+  public final static class org_graalvm_nativeimage_ObjectHandles implements CHeader.Header { @Override public String name() { return "org_graalvm_nativeimage_ObjectHandles"; }}
+  public final static class org_graalvm_nativeimage_c_type_CTypeConversion implements CHeader.Header { @Override public String name() { return "org_graalvm_nativeimage_c_type_CTypeConversion"; }}
+
+  @CHeader(org_graalvm_nativeimage_ObjectHandles.class)
+  @CEntryPoint(name = "org_graalvm_nativeimage_ObjectHandles_getGlobal_destroy", include = CEntryPoint.AlwaysIncluded.class)
+  public static void org_graalvm_nativeimage_ObjectHandles_getGlobal_destroy(final IsolateThread thread, final ObjectHandle objectHandle) {
     ObjectHandles.getGlobal().destroy(objectHandle);
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "org_graalvm_nativeimage_c_type_CTypeConversion_utf8ToJavaString", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_java_lang_String")
+  public static ObjectHandle org_graalvm_nativeimage_c_type_CTypeConversion_utf8ToJavaString(final IsolateThread thread, @CConst final CCharPointer utf8String) {
+    return ObjectHandles.getGlobal().create(CTypeConversion.utf8ToJavaString(utf8String));
+  }
+
+  @CHeader(org_graalvm_nativeimage_UnmanagedMemory.class)
+  @CEntryPoint(name = "org_graalvm_nativeimage_UnmanagedMemory_malloc_String", include = CEntryPoint.AlwaysIncluded.class)
+  public static CCharPointer org_graalvm_nativeimage_UnmanagedMemory_malloc_String(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_java_lang_String") final ObjectHandle ohString) {
+    final String str = ObjectHandles.getGlobal().get(ohString);
+    final byte[] bytes = str.getBytes();
+    final UnsignedWord size = WordFactory.unsigned(bytes.length + 1);
+    final CCharPointer buffer = UnmanagedMemory.malloc(size);
+    CTypeConversion.toCString(str, buffer, size);
+    return buffer;
+  }
+
+  @CHeader(org_graalvm_nativeimage_UnmanagedMemory.class)
+  @CEntryPoint(name = "org_graalvm_nativeimage_UnmanagedMemory_malloc", include = CEntryPoint.AlwaysIncluded.class)
+  public static PointerBase org_graalvm_nativeimage_UnmanagedMemory_malloc(final IsolateThread thread, final UnsignedWord size) {
+    return UnmanagedMemory.malloc(size);
+  }
+
+  @CHeader(org_graalvm_nativeimage_UnmanagedMemory.class)
+  @CEntryPoint(name = "org_graalvm_nativeimage_UnmanagedMemory_calloc", include = CEntryPoint.AlwaysIncluded.class)
+  public static PointerBase org_graalvm_nativeimage_UnmanagedMemory_calloc(final IsolateThread thread, final UnsignedWord size) {
+    return UnmanagedMemory.calloc(size);
+  }
+
+  @CHeader(org_graalvm_nativeimage_UnmanagedMemory.class)
+  @CEntryPoint(name = "org_graalvm_nativeimage_UnmanagedMemory_realloc", include = CEntryPoint.AlwaysIncluded.class)
+  public static PointerBase org_graalvm_nativeimage_UnmanagedMemory_realloc(final IsolateThread thread, final PointerBase ptr, final UnsignedWord size) {
+    return UnmanagedMemory.realloc(ptr, size);
+  }
+
+  @CHeader(org_graalvm_nativeimage_UnmanagedMemory.class)
+  @CEntryPoint(name = "org_graalvm_nativeimage_UnmanagedMemory_free", include = CEntryPoint.AlwaysIncluded.class)
+  public static void org_graalvm_nativeimage_UnmanagedMemory_free(final IsolateThread thread, final PointerBase ptr) {
+    UnmanagedMemory.free(ptr);
   }
 
   public static void main(String[] args) throws Throwable {

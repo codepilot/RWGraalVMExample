@@ -202,12 +202,14 @@ set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENT
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${RAPIDWRIGHT_PATH}")
 
 add_executable(ExperimentalAPI_mt
+  "${CMAKE_CURRENT_SOURCE_DIR}/util_org_graalvm.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Isolate.hpp"
 )
 
 add_executable(ExperimentalAPI_st
+  "${CMAKE_CURRENT_SOURCE_DIR}/util_org_graalvm.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Isolate.hpp"
