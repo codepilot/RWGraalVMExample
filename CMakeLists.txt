@@ -28,16 +28,16 @@ set(rw_gradlew_bat "${rapidwright_SOURCE_DIR}/gradlew.bat")
 
 set(RAPIDWRIGHT_PATH "${rapidwright_SOURCE_DIR}")
 
-set(RAPIDWRIGHT_EXAMPLES_PATH "${RAPIDWRIGHT_PATH}/src/com/xilinx/rapidwright/examples")
 
-file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent)
-
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/TransformAgent DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(REMOVE_RECURSE "${CMAKE_CURRENT_BINARY_DIR}/native-image")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/native-image/experimental")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses/ProxyClass")
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/TransformAgent DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/native-image)
 
 message("COMPILING TransformAgent.java...")
 execute_process(
   COMMAND ${JAVAC_EXE}
-  -d ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent
+  -d ${CMAKE_CURRENT_BINARY_DIR}/native-image/TransformAgent
   ${CMAKE_CURRENT_SOURCE_DIR}/TransformAgent/TransformAgent.java
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/TransformAgent
 )
@@ -49,30 +49,14 @@ execute_process(
   TransformAgent.jar
   MANIFEST.MF
   *.class
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/TransformAgent
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/native-image/TransformAgent
 )
 
-set(RapidWrightAPI_JAVA_PATH "${RAPIDWRIGHT_EXAMPLES_PATH}/RapidWrightAPI.java")
-file(REMOVE "${RapidWrightAPI_JAVA_PATH}")
-file(REMOVE "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java")
-
-
-# file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/build/experimental")
-# file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/src/com/xilinx/rapidwright/experimental")
-# file(REMOVE_RECURSE "${rapidwright_SOURCE_DIR}/bin/com/xilinx/rapidwright/experimental")
-
-# file(
-#   COPY_FILE
-#   "${CMAKE_CURRENT_SOURCE_DIR}/BuildInterface.java"
-#   "${RAPIDWRIGHT_EXAMPLES_PATH}/BuildInterface.java"
-# )
-
-execute_process(COMMAND ${rw_gradlew_bat} compileJava WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
 execute_process(COMMAND ${rw_gradlew_bat} jar WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
 
-set(CLASS_PATH "${RAPIDWRIGHT_PATH}/build/libs/main.jar")
+set(CLASS_PATH "${RAPIDWRIGHT_PATH}/build/libs/rapidwright.jar;${RAPIDWRIGHT_PATH}/jars/zstd-jni-1.5.5-1.jar;${RAPIDWRIGHT_PATH}/jars/kryo-5.2.1.jar;${RAPIDWRIGHT_PATH}/jars/jgrapht-core-1.3.0.jar;${RAPIDWRIGHT_PATH}/jars/runtime-0.1.13.jar;${RAPIDWRIGHT_PATH}/jars/jopt-simple-5.0.4.jar;${RAPIDWRIGHT_PATH}/jars/jython-standalone-2.7.2.jar;${RAPIDWRIGHT_PATH}/jars/ortools-java-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/protobuf-java-4.31.1.jar;${RAPIDWRIGHT_PATH}/jars/annotations-20.1.0.jar;${RAPIDWRIGHT_PATH}/jars/jupyter-kernel-jsr223-1.0.1.jar;${RAPIDWRIGHT_PATH}/jars/jeromq-0.5.2.jar;${RAPIDWRIGHT_PATH}/jars/commons-cli-1.2.jar;${RAPIDWRIGHT_PATH}/jars/json-20160810.jar;${RAPIDWRIGHT_PATH}/jars/jzlib-1.1.3.jar;${RAPIDWRIGHT_PATH}/jars/commons-io-2.20.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.alg.layered-0.10.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.alg.common-0.10.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.core-0.10.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.graph-0.10.0.jar;${RAPIDWRIGHT_PATH}/jars/guava-33.5.0-jre.jar;${RAPIDWRIGHT_PATH}/jars/qtjambi-win64-msvc2005x64-4.5.2_01.jar;${RAPIDWRIGHT_PATH}/jars/jacl-1.4.1.jar;${RAPIDWRIGHT_PATH}/jars/rapidwright-api-lib-2026.1.1.jar;${RAPIDWRIGHT_PATH}/jars/rapidwright-api-lib-2026.1.1-javadoc.jar;${RAPIDWRIGHT_PATH}/jars/reflectasm-1.11.9.jar;${RAPIDWRIGHT_PATH}/jars/objenesis-3.2.jar;${RAPIDWRIGHT_PATH}/jars/minlog-1.3.1.jar;${RAPIDWRIGHT_PATH}/jars/jheaps-0.9.jar;${RAPIDWRIGHT_PATH}/jars/ortools-linux-x86-64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/ortools-darwin-x86-64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/ortools-win32-x86-64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/ortools-linux-aarch64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/ortools-darwin-aarch64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/jna-platform-5.14.0.jar;${RAPIDWRIGHT_PATH}/jars/jnacl-1.0.0.jar;${RAPIDWRIGHT_PATH}/jars/failureaccess-1.0.3.jar;${RAPIDWRIGHT_PATH}/jars/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar;${RAPIDWRIGHT_PATH}/jars/jspecify-1.0.0.jar;${RAPIDWRIGHT_PATH}/jars/error_prone_annotations-2.41.0.jar;${RAPIDWRIGHT_PATH}/jars/j2objc-annotations-3.1.jar;${RAPIDWRIGHT_PATH}/jars/qtjambi-4.5.2_01.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.ecore.xmi-2.12.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.common-2.12.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.ecore-2.12.0.jar;${RAPIDWRIGHT_PATH}/jars/jna-5.14.0.jar")
 
-set(REFLECTION_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI")
+set(REFLECTION_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI")
 
 file(MAKE_DIRECTORY "${REFLECTION_CONFIG_DIR}")
 
@@ -84,14 +68,14 @@ file(COPY_FILE
 file(
   COPY_FILE
   "${CMAKE_CURRENT_SOURCE_DIR}/FileToolsUpdateAllDataFiles.java"
-  "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
+  "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses/ProxyClass/FileToolsUpdateAllDataFiles.java"
 )
 
 message("BUILDING FileToolsUpdateAllDataFiles.java...")
 execute_process(COMMAND ${JAVAC_EXE}
   -cp "${CLASS_PATH}"
-  "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
-  -d "${RAPIDWRIGHT_PATH}/bin"
+  "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses/ProxyClass/FileToolsUpdateAllDataFiles.java"
+  -d "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses"
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
 )
 
@@ -100,8 +84,7 @@ execute_process(COMMAND ${JAVA_EXE}
   "-agentlib:native-image-agent=config-merge-dir=${REFLECTION_CONFIG_DIR}"
   -cp "${CLASS_PATH}"
   --enable-native-access=ALL-UNNAMED
-  "${RAPIDWRIGHT_EXAMPLES_PATH}/FileToolsUpdateAllDataFiles.java"
-  -d "${RAPIDWRIGHT_PATH}"
+  "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses/ProxyClass/FileToolsUpdateAllDataFiles.java"
   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
 )
 
@@ -117,6 +100,11 @@ execute_process(COMMAND ${JAVA_EXE}
 #   WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}
 # )
 
+
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses/com/xilinx/rapidwright/examples")
+
+set(RapidWrightAPI_JAVA_PATH "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses/com/xilinx/rapidwright/examples/RapidWrightAPI.java")
+
 file(COPY_FILE
   "${graalvmexample_SOURCE_DIR}/RapidWrightAPI.java"
   "${RapidWrightAPI_JAVA_PATH}"
@@ -126,9 +114,9 @@ message("COMPILING RapidWrightAPI.java...")
 execute_process(
   COMMAND ${JAVAC_EXE}
   -cp "${CLASS_PATH}"
-  -d "${RAPIDWRIGHT_PATH}/bin"
+  -d "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses"
   "${RapidWrightAPI_JAVA_PATH}"
-  WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses
 )
 
 # message("COMPILING @java_file_list.txt...")
@@ -136,23 +124,21 @@ execute_process(
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
 
-file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/experimental)
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/experimental")
-
 message("EXECUTING NATIVE-IMAGE...")
 execute_process(
   COMMAND "${native_image_cmd}"
   --exact-reachability-metadata
   --enable-native-access=ALL-UNNAMED
-  -cp "${CLASS_PATH};${CMAKE_CURRENT_BINARY_DIR}"
+  -cp "${CLASS_PATH};${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses"
   --initialize-at-build-time
   --initialize-at-run-time=com.esotericsoftware.kryo.unsafe.UnsafeUtil
   --initialize-at-run-time=com.esotericsoftware.kryo.util.CuckooObjectMap
   --initialize-at-run-time=com.github.luben.zstd
+  --initialize-at-run-time=com.github.luben.zstd.util.Native
   --initialize-at-run-time=com.google.ortools.sat.mainJNI
-  --initialize-at-run-time=org.python.modules.posix.PosixModule
-  --initialize-at-run-time=org.python.modules.Setup
-  --initialize-at-run-time=com.xilinx.rapidwright.util.ParallelismTools
+  --initialize-at-run-time=com.xilinx.rapidwright.device.EnumerateIOExpansions
+  --initialize-at-run-time=com.xilinx.rapidwright.device.PartNameTools
+  --initialize-at-run-time=com.xilinx.rapidwright.device.Site
   --initialize-at-run-time=com.xilinx.rapidwright.gui.FileFilters
   --initialize-at-run-time=com.xilinx.rapidwright.gui.GUIModuleInst
   --initialize-at-run-time=com.xilinx.rapidwright.gui.GUIShapeState
@@ -171,8 +157,12 @@ execute_process(
   --initialize-at-run-time=com.xilinx.rapidwright.gui.UiPBlock
   --initialize-at-run-time=com.xilinx.rapidwright.gui.UiTools
   --initialize-at-run-time=com.xilinx.rapidwright.gui.WidgetMaker
-  --initialize-at-run-time=org.fusesource.jansi.internal.Kernel32
+  --initialize-at-run-time=com.xilinx.rapidwright.util.ParallelismTools
   --initialize-at-run-time=org.fusesource.jansi.internal.CLibrary
+  --initialize-at-run-time=org.fusesource.jansi.internal.Kernel32
+  --initialize-at-run-time=org.python.modules.posix.PosixModule
+  --initialize-at-run-time=org.python.modules.Setup
+  --trace-object-instantiation=jdk.internal.misc.InnocuousThread
   -J-javaagent:TransformAgent/TransformAgent.jar
   --enable-native-access=ALL-UNNAMED
   --shared
@@ -189,13 +179,14 @@ execute_process(
   -H:+AddAllCharsets
   -H:Name=librapidwright
   --native-compiler-options=/bigobj
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  -ERAPIDWRIGHT_PATH
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/native-image"
 )
 
 add_executable(RapidWrightExample "${graalvmexample_SOURCE_DIR}/RapidWrightExample.cpp")
 target_compile_features(RapidWrightExample PUBLIC cxx_std_23)
-target_include_directories(RapidWrightExample PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_link_directories(RapidWrightExample PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(RapidWrightExample PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/native-image)
+target_link_directories(RapidWrightExample PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/native-image)
 target_link_libraries(RapidWrightExample PUBLIC librapidwright.lib)
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR};${PATH}")
 set_target_properties(RapidWrightExample PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
@@ -221,20 +212,20 @@ target_compile_options(ExperimentalAPI_st PUBLIC /arch:AVX512 /Zc:__cplusplus /M
 target_compile_features(ExperimentalAPI_mt PUBLIC cxx_std_23)
 target_compile_features(ExperimentalAPI_st PUBLIC cxx_std_23)
 
-target_include_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/native-image)
+target_include_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/native-image)
 
-target_include_directories(ExperimentalAPI_mt PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/experimental")
-target_include_directories(ExperimentalAPI_st PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/experimental")
+target_include_directories(ExperimentalAPI_mt PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/native-image/experimental")
+target_include_directories(ExperimentalAPI_st PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/native-image/experimental")
 
-target_link_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_link_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_directories(ExperimentalAPI_mt PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/native-image)
+target_link_directories(ExperimentalAPI_st PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/native-image)
 
 target_link_libraries(ExperimentalAPI_mt PUBLIC librapidwright.lib)
 target_link_libraries(ExperimentalAPI_st PUBLIC librapidwright.lib)
 
-set_target_properties(ExperimentalAPI_mt PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR};${PATH}")
-set_target_properties(ExperimentalAPI_st PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR};${PATH}")
+set_target_properties(ExperimentalAPI_mt PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR}/native-image;${PATH}")
+set_target_properties(ExperimentalAPI_st PROPERTIES VS_DEBUGGER_ENVIRONMENT "RAPIDWRIGHT_PATH=${RAPIDWRIGHT_PATH}\nPATH=${CMAKE_CURRENT_BINARY_DIR}/native-image;${PATH}")
 
 set_target_properties(ExperimentalAPI_mt PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")
 set_target_properties(ExperimentalAPI_st PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "xcvu9p")

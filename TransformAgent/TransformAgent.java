@@ -9,6 +9,7 @@ import java.lang.classfile.AccessFlags;
 import java.lang.classfile.Annotation;
 import java.lang.classfile.AnnotationElement;
 import java.lang.classfile.attribute.CompilationIDAttribute;
+import java.lang.classfile.attribute.ConstantValueAttribute;
 import java.lang.classfile.attribute.DeprecatedAttribute;
 import java.lang.classfile.attribute.EnclosingMethodAttribute;
 import java.lang.classfile.attribute.InnerClassesAttribute;
@@ -64,6 +65,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.ProtectionDomain;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.HexFormat;
 import java.util.jar.JarEntry;
@@ -71,6 +73,7 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.SortedSet;
 
@@ -87,6 +90,93 @@ public final class TransformAgent {
   static final SortedSet<String> hppObjectHandles = new ConcurrentSkipListSet();
   static final SortedSet<String> hppObjectFiles = new ConcurrentSkipListSet();
   static final SortedSet<String> hPackages = new ConcurrentSkipListSet();
+  static final Map<String, String> proxyClasses = new ConcurrentHashMap<>();
+
+  public static void make_ProxyClass(final ClassDesc classDescProxy) {
+    proxyClasses.computeIfAbsent(classDescProxy.displayName(), k-> {
+      try {
+        System.out.println("make_ProxyClass " + k);
+        final String classFileName = (((classDescProxy.packageName().length() > 0)?(classDescProxy.packageName() + "."):"") + classDescProxy.displayName()).replace('.', '/') + ".class";
+        final Path targetPath = Path.of("ProxyClasses/" + classFileName);
+        ClassFile.of().buildTo(targetPath, classDescProxy, classBuilder -> classBuilder
+          .with(SourceFileAttribute.of(classFileName))
+          .withFlags(AccessFlag.PUBLIC, AccessFlag.SUPER)
+          .withField("version", ConstantDescs.CD_int, fieldBuilder->
+            fieldBuilder
+              .withFlags(AccessFlag.PUBLIC, AccessFlag.STATIC, AccessFlag.FINAL)
+              .with(ConstantValueAttribute.of(42))
+          )
+          .withMethodBody(ConstantDescs.INIT_NAME,
+            ConstantDescs.MTD_void,
+            AccessFlag.PUBLIC.mask(),
+            codeBuilder -> codeBuilder
+              .aload(0)
+              .invokespecial(ConstantDescs.CD_Object, ConstantDescs.INIT_NAME, ConstantDescs.MTD_void)
+              .return_()
+          )
+
+          .withMethod(
+            "getversion",
+            MethodTypeDesc.of(ConstantDescs.CD_int, classDesc_IsolateThread/*, classDesc_ObjectHandle */),
+            ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
+            (final MethodBuilder methodBuilder) -> {
+              Annotation annotation = Annotation.of(
+                classDesc_CEntryPoint,
+                AnnotationElement.ofString("name", "getversion"),
+                AnnotationElement.ofClass("include", ClassDesc.of("org.graalvm.nativeimage.c.function", "CEntryPoint$AlwaysIncluded"))
+              );
+
+              methodBuilder.with(RuntimeVisibleAnnotationsAttribute.of(annotation));
+              // methodBuilder.with(RuntimeVisibleTypeAnnotationsAttribute.of(typeAnnotations));
+
+              methodBuilder.withCode((final CodeBuilder codeBuilder) -> {
+                int nextAvailableSlot = 0;
+
+                final int slot_arg_IsolateThread = nextAvailableSlot++;
+                final int slot_arg_ObjectHandle = nextAvailableSlot++;
+                if(false) {
+                  final int slot_globalObjectHandles = nextAvailableSlot++;
+                  cb_ObjectHandles_getGlobal(codeBuilder, slot_globalObjectHandles);
+      
+                  final int slot_boxedObject = nextAvailableSlot++;
+                  cb_ObjectHandles_destroy(codeBuilder, slot_globalObjectHandles, slot_arg_ObjectHandle);
+      
+                  codeBuilder.return_();
+                } else {
+                  // final ClassDesc classDescProxy = ClassDesc.of("ProxyClass.java_lang_String");
+                  // make_ProxyClass(classDescProxy);
+
+                  // codeBuilder.iconst_1();
+                  // codeBuilder.iadd();
+                  // codeBuilder.putstatic(classDescProxy, "version", ConstantDescs.CD_int);
+
+                  // codeBuilder.invokestatic(classDesc_ObjectHandles, "getGlobal", MethodTypeDesc.of(classDesc_ObjectHandles), true);
+                  // codeBuilder.aload(slot_arg_ObjectHandle);
+                  // codeBuilder.invokeinterface(classDesc_ObjectHandles, "destroy", MethodTypeDesc.of(ConstantDescs.CD_void, classDesc_ObjectHandle));
+
+                  codeBuilder.getstatic(classDescProxy, "version", ConstantDescs.CD_int);
+                  codeBuilder.ireturn();
+                }
+              });
+            }
+          )
+
+          // .withMethodBody("main", 
+          //   MethodTypeDesc.of(CD_void, CD_String.arrayType()), 
+          //   PUBLIC.mask() | STATIC.mask(), 
+          //   codeBuilder -> codeBuilder
+          //     .getstatic(ClassDesc.of("java.lang.System"), "out", ClassDesc.of("java.io.PrintStream"))
+          //     .ldc("Hello World")
+          //     .invokevirtual(ClassDesc.of("java.io.PrintStream"), "println", MethodTypeDesc.of(CD_void, CD_String))
+          //     .return_()
+          // )
+        );
+      } catch(IOException err) {
+        
+      }
+      return k;
+    });
+  }
 
   static final int getRank(ClassDesc desc) {
     int rank = 0;
@@ -315,7 +405,7 @@ public final class TransformAgent {
       classBuilder.with(RuntimeVisibleAnnotationsAttribute.of(
         Annotation.of(
           classDesc_CHeader,
-          AnnotationElement.ofClass("value", ClassDesc.of("com.xilinx.rapidwright.examples", "FileToolsUpdateAllDataFiles$" + classDesc.packageName().replace('.', '_')))
+          AnnotationElement.ofClass("value", ClassDesc.of("ProxyClass", "FileToolsUpdateAllDataFiles$" + classDesc.packageName().replace('.', '_')))
         )
       ));
 
@@ -505,9 +595,9 @@ public final class TransformAgent {
 
       final String originalMethodName = methodModel.methodName().stringValue();
       if(originalMethodName.length() <= 1) return;
-      if(originalMethodName.equals("<clinit>")) return;
+      if(originalMethodName.equals(ConstantDescs.CLASS_INIT_NAME)) return;
 
-      final boolean isConstructor = originalMethodName.equals("<init>");
+      final boolean isConstructor = originalMethodName.equals(ConstantDescs.INIT_NAME);
 
       final boolean isStatic = methodModel.flags().has(AccessFlag.STATIC);
 
@@ -949,6 +1039,10 @@ public final class TransformAgent {
 
   public static void premain(String agentArgs, Instrumentation inst) {
     System.out.println("Java Agent initialized. Registering TransformAgent...");
+
+    final ClassDesc classDescProxy = ClassDesc.of("ProxyClass.java_lang_String");
+    make_ProxyClass(classDescProxy);
+
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       System.out.println("Java Agent addShutdownHook...");
         try {

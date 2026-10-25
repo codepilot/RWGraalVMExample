@@ -26,6 +26,9 @@ int main(int argc, char **argv) {
   //TileColumnPattern::MAX_PATTERN_LENGTH = TileColumnPattern::MAX_PATTERN_LENGTH + 1;
   //std::println("TileColumnPattern::MAX_PATTERN_LENGTH: {}", TileColumnPattern::MAX_PATTERN_LENGTH);
 
+  std::println("getversion: {}", getversion(localThread.get()));
+
+
   std::vector<std::string> args;
   args.reserve(argc);
   std::ranges::copy(std::span<char*>(argv, static_cast<std::size_t>(argc)).subspan(1), std::back_inserter(args));

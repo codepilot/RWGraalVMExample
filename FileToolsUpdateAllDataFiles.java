@@ -1,4 +1,4 @@
-package com.xilinx.rapidwright.examples;
+package ProxyClass;
 
 // import com.xilinx.rapidwright.MainEntrypoint;
 import com.xilinx.rapidwright.device.Device;
