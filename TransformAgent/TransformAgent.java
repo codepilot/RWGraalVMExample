@@ -436,14 +436,26 @@ public final class TransformAgent {
         fw_frwd_hpp.write("  struct " + classDesc.displayName().replace('$', '_') + ";\n");
         fw_decl_hpp.write("  struct " + classDesc.displayName().replace('$', '_') + " {\n");
         fw_decl_hpp.write("    OBJECT_HANDLE_" + classDesc.packageName().replace('.', '_') + "_" + classDesc.displayName().replace('$', '_') + " _objectHandle;\n\n");
+
+        fw_decl_hpp.write("    __forceinline " + classDesc.displayName().replace('$', '_') + "(" + classDesc.displayName().replace('$', '_') + "&&) noexcept;\n");
+        fw_decl_hpp.write("    __forceinline " + classDesc.displayName().replace('$', '_') + "& operator=(" + classDesc.displayName().replace('$', '_') + "&&) noexcept;\n");
+
         fw_decl_hpp.write("    __forceinline explicit " + classDesc.displayName().replace('$', '_') + "(OBJECT_HANDLE_" + classDesc.packageName().replace('.', '_') + "_" + classDesc.displayName().replace('$', '_') + " objectHandle) noexcept;\n");
         fw_decl_hpp.write("    __forceinline ~" + classDesc.displayName().replace('$', '_') + "() noexcept;\n");
 
         fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::" + classDesc.displayName().replace('$', '_') + "(OBJECT_HANDLE_" + classDesc.packageName().replace('.', '_') + "_" + classDesc.displayName().replace('$', '_') + " objectHandle) noexcept: _objectHandle{objectHandle} {\n");
         fw_impl_hpp.write("  }\n\n");
 
+        fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::" + classDesc.displayName().replace('$', '_') + "(" + classDesc.displayName().replace('$', '_') + "&& other) noexcept: _objectHandle{std::exchange(other._objectHandle, nullptr)} {\n");
+        fw_impl_hpp.write("  }\n\n");
+
+        fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "& " + classDesc.displayName().replace('$', '_') + "::operator=(" + classDesc.displayName().replace('$', '_') + "&& other) noexcept {\n");
+        fw_impl_hpp.write("    std::swap(other._objectHandle, _objectHandle);\n");
+        fw_impl_hpp.write("    return *this;\n");
+        fw_impl_hpp.write("  }\n\n");
+
         fw_impl_hpp.write("  __forceinline " + classDesc.displayName().replace('$', '_') + "::~" + classDesc.displayName().replace('$', '_') + "() noexcept {\n");
-        fw_impl_hpp.write("    org_graalvm_nativeimage_ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);\n");
+        fw_impl_hpp.write("    if(_objectHandle) { org_graalvm_nativeimage_ObjectHandles_getGlobal_destroy(localThread.get(), _objectHandle);}\n");
         fw_impl_hpp.write("  }\n\n");
 
       } catch(IOException err) {

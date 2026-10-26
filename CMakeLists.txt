@@ -54,7 +54,52 @@ execute_process(
 
 execute_process(COMMAND ${rw_gradlew_bat} jar WORKING_DIRECTORY ${rapidwright_SOURCE_DIR})
 
-set(CLASS_PATH "${RAPIDWRIGHT_PATH}/build/libs/rapidwright.jar;${RAPIDWRIGHT_PATH}/jars/zstd-jni-1.5.5-1.jar;${RAPIDWRIGHT_PATH}/jars/kryo-5.2.1.jar;${RAPIDWRIGHT_PATH}/jars/jgrapht-core-1.3.0.jar;${RAPIDWRIGHT_PATH}/jars/runtime-0.1.13.jar;${RAPIDWRIGHT_PATH}/jars/jopt-simple-5.0.4.jar;${RAPIDWRIGHT_PATH}/jars/jython-standalone-2.7.2.jar;${RAPIDWRIGHT_PATH}/jars/ortools-java-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/protobuf-java-4.31.1.jar;${RAPIDWRIGHT_PATH}/jars/annotations-20.1.0.jar;${RAPIDWRIGHT_PATH}/jars/jupyter-kernel-jsr223-1.0.1.jar;${RAPIDWRIGHT_PATH}/jars/jeromq-0.5.2.jar;${RAPIDWRIGHT_PATH}/jars/commons-cli-1.2.jar;${RAPIDWRIGHT_PATH}/jars/json-20160810.jar;${RAPIDWRIGHT_PATH}/jars/jzlib-1.1.3.jar;${RAPIDWRIGHT_PATH}/jars/commons-io-2.20.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.alg.layered-0.10.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.alg.common-0.10.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.core-0.10.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.graph-0.10.0.jar;${RAPIDWRIGHT_PATH}/jars/guava-33.5.0-jre.jar;${RAPIDWRIGHT_PATH}/jars/qtjambi-win64-msvc2005x64-4.5.2_01.jar;${RAPIDWRIGHT_PATH}/jars/jacl-1.4.1.jar;${RAPIDWRIGHT_PATH}/jars/rapidwright-api-lib-2026.1.1.jar;${RAPIDWRIGHT_PATH}/jars/rapidwright-api-lib-2026.1.1-javadoc.jar;${RAPIDWRIGHT_PATH}/jars/reflectasm-1.11.9.jar;${RAPIDWRIGHT_PATH}/jars/objenesis-3.2.jar;${RAPIDWRIGHT_PATH}/jars/minlog-1.3.1.jar;${RAPIDWRIGHT_PATH}/jars/jheaps-0.9.jar;${RAPIDWRIGHT_PATH}/jars/ortools-linux-x86-64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/ortools-darwin-x86-64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/ortools-win32-x86-64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/ortools-linux-aarch64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/ortools-darwin-aarch64-9.14.6206.jar;${RAPIDWRIGHT_PATH}/jars/jna-platform-5.14.0.jar;${RAPIDWRIGHT_PATH}/jars/jnacl-1.0.0.jar;${RAPIDWRIGHT_PATH}/jars/failureaccess-1.0.3.jar;${RAPIDWRIGHT_PATH}/jars/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar;${RAPIDWRIGHT_PATH}/jars/jspecify-1.0.0.jar;${RAPIDWRIGHT_PATH}/jars/error_prone_annotations-2.41.0.jar;${RAPIDWRIGHT_PATH}/jars/j2objc-annotations-3.1.jar;${RAPIDWRIGHT_PATH}/jars/qtjambi-4.5.2_01.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.ecore.xmi-2.12.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.common-2.12.0.jar;${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.ecore-2.12.0.jar;${RAPIDWRIGHT_PATH}/jars/jna-5.14.0.jar")
+set(CLASS_PATH "${RAPIDWRIGHT_PATH}/build/libs/rapidwright.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/annotations-20.1.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/commons-cli-1.2.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/commons-io-2.20.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/error_prone_annotations-2.41.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/failureaccess-1.0.3.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/guava-33.5.0-jre.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/j2objc-annotations-3.1.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jacl-1.4.1.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jeromq-0.5.2.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jgrapht-core-1.3.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jheaps-0.9.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jna-5.14.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jna-platform-5.14.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jnacl-1.0.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jopt-simple-5.0.4.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/json-20160810.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jspecify-1.0.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jupyter-kernel-jsr223-1.0.1.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jython-standalone-2.7.2.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/jzlib-1.1.3.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/kryo-5.2.1.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/minlog-1.3.1.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/objenesis-3.2.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.alg.common-0.10.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.alg.layered-0.10.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.core-0.10.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/org.eclipse.elk.graph-0.10.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.common-2.12.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.ecore-2.12.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/org.eclipse.emf.ecore.xmi-2.12.0.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/ortools-darwin-aarch64-9.14.6206.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/ortools-darwin-x86-64-9.14.6206.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/ortools-java-9.14.6206.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/ortools-linux-aarch64-9.14.6206.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/ortools-linux-x86-64-9.14.6206.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/ortools-win32-x86-64-9.14.6206.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/protobuf-java-4.31.1.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/qtjambi-4.5.2_01.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/qtjambi-win64-msvc2005x64-4.5.2_01.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/rapidwright-api-lib-2026.1.1-javadoc.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/rapidwright-api-lib-2026.1.1.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/reflectasm-1.11.9.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/runtime-0.1.13.jar")
+set(CLASS_PATH "${CLASS_PATH};${RAPIDWRIGHT_PATH}/jars/zstd-jni-1.5.5-1.jar")
 
 set(REFLECTION_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses/META-INF/native-image/com.xilinx.rapidwright.examples/RapidWrightAPI")
 
@@ -123,13 +168,14 @@ execute_process(
 # execute_process(COMMAND ${JAVAC_EXE} -cp "${CLASS_PATH}" -d "${RAPIDWRIGHT_PATH}/bin" "@${rapidwright_SOURCE_DIR}/build/java_file_list.txt" WORKING_DIRECTORY ${RAPIDWRIGHT_PATH}/bin)
 
 set(native_image_cmd "${GRAAL_PATH}/native-image.cmd")
+set(CLASS_PATH "${CLASS_PATH};${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses")
 
 message("EXECUTING NATIVE-IMAGE...")
 execute_process(
   COMMAND "${native_image_cmd}"
   --exact-reachability-metadata
   --enable-native-access=ALL-UNNAMED
-  -cp "${CLASS_PATH};${CMAKE_CURRENT_BINARY_DIR}/native-image/ProxyClasses"
+  -cp "${CLASS_PATH}"
   --initialize-at-build-time
   --initialize-at-run-time=com.esotericsoftware.kryo.unsafe.UnsafeUtil
   --initialize-at-run-time=com.esotericsoftware.kryo.util.CuckooObjectMap
@@ -178,6 +224,7 @@ execute_process(
   -H:-DeleteLocalSymbols
   -H:+AddAllCharsets
   -H:Name=librapidwright
+  -H:-ReduceImplicitExceptionStackTraceInformation
   --native-compiler-options=/bigobj
   -ERAPIDWRIGHT_PATH
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/native-image"
@@ -197,6 +244,7 @@ add_executable(ExperimentalAPI_mt
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Isolate.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/JAVA_ARRAY.hpp"
 )
 
 add_executable(ExperimentalAPI_st
@@ -204,6 +252,7 @@ add_executable(ExperimentalAPI_st
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_st.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/ExperimentalAPI_mt_Isolate.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/JAVA_ARRAY.hpp"
 )
 
 target_compile_options(ExperimentalAPI_mt PUBLIC /arch:AVX512 /Zc:__cplusplus /MP /GR- /constexpr:steps1073741824 /bigobj)

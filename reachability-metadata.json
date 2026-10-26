@@ -1,6 +1,9 @@
 {
   "reflection": [
     {
+      "type": "java.lang.Double"
+    },
+    {
       "type": "com.esotericsoftware.kryo.unsafe.UnsafeUtil"
     },
     {

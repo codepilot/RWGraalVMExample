@@ -9,9 +9,9 @@ import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CConst;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.nativeimage.c.type.CTypedef;
+import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.ObjectHandle;
 import org.graalvm.nativeimage.ObjectHandles;
-import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.word.PointerBase;
 import org.graalvm.word.UnsignedWord;
@@ -71,6 +71,99 @@ public class FileToolsUpdateAllDataFiles {
   @CTypedef(name = "OBJECT_HANDLE_java_lang_String")
   public static ObjectHandle org_graalvm_nativeimage_c_type_CTypeConversion_utf8ToJavaString(final IsolateThread thread, @CConst final CCharPointer utf8String) {
     return ObjectHandles.getGlobal().create(CTypeConversion.utf8ToJavaString(utf8String));
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "new_rank_1_java_lang_Object", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_Object")
+  public static ObjectHandle new_rank_1_java_lang_Object(final IsolateThread thread, int dim1) {
+    return ObjectHandles.getGlobal().create(new java.lang.Object[dim1]);
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "new_rank_1_java_lang_String", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_String")
+  public static ObjectHandle new_rank_1_java_lang_String(final IsolateThread thread, int dim1) {
+    return ObjectHandles.getGlobal().create(new java.lang.String[dim1]);
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "new_rank_2_java_lang_String", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_RANK_2_java_lang_String")
+  public static ObjectHandle new_rank_2_java_lang_String(final IsolateThread thread, int dim1, int dim2) {
+    return ObjectHandles.getGlobal().create(new java.lang.String[dim1][dim2]);
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "length_rank_1_java_lang_Object", include = CEntryPoint.AlwaysIncluded.class)
+  public static int length_rank_1_java_lang_Object(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_Object") final ObjectHandle ohArr) {
+    final java.lang.Object[] arr = ObjectHandles.getGlobal().get(ohArr);
+    return arr.length;
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "length_rank_1_java_lang_String", include = CEntryPoint.AlwaysIncluded.class)
+  public static int length_rank_1_java_lang_String(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_String") final ObjectHandle ohArr) {
+    final java.lang.String[] arr = ObjectHandles.getGlobal().get(ohArr);
+    return arr.length;
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "length_rank_2_java_lang_String", include = CEntryPoint.AlwaysIncluded.class)
+  public static int length_rank_2_java_lang_String(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_RANK_2_java_lang_String") final ObjectHandle ohArr) {
+    final java.lang.String[][] arr = ObjectHandles.getGlobal().get(ohArr);
+    return arr.length;
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "java_util_Collection_toArray", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_Object")
+  public static ObjectHandle get_rank_1_java_lang_Object(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_java_util_Collection") final ObjectHandle ohCollection) {
+    final ObjectHandles globalHandles = ObjectHandles.getGlobal();
+    final java.util.Collection col = globalHandles.get(ohCollection);
+    return globalHandles.create(col.toArray());
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "java_util_Collection_size", include = CEntryPoint.AlwaysIncluded.class)
+  public static int java_util_Collection_size(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_java_util_Collection") final ObjectHandle ohCollection) {
+    final ObjectHandles globalHandles = ObjectHandles.getGlobal();
+    final java.util.Collection col = globalHandles.get(ohCollection);
+    return col.size();
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "get_rank_1_java_lang_Object", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_java_lang_Object")
+  public static ObjectHandle get_rank_1_java_lang_Object(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_Object") final ObjectHandle ohArr, final int index) {
+    final java.lang.Object[] arr = ObjectHandles.getGlobal().get(ohArr);
+    return ObjectHandles.getGlobal().create(arr[index]);
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "get_rank_1_java_lang_String", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_java_lang_String")
+  public static ObjectHandle get_rank_1_java_lang_String(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_String") final ObjectHandle ohArr, final int index) {
+    final java.lang.String[] arr = ObjectHandles.getGlobal().get(ohArr);
+    return ObjectHandles.getGlobal().create(arr[index]);
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "set_rank_1_java_lang_Object", include = CEntryPoint.AlwaysIncluded.class)
+  public static void set_rank_1_java_lang_Object(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_Object") final ObjectHandle ohArr, final int index, @CTypedef(name = "OBJECT_HANDLE_java_lang_Object") final ObjectHandle ohVal) {
+    final ObjectHandles globalHandles = ObjectHandles.getGlobal();
+    final java.lang.Object[] arr = globalHandles.get(ohArr);
+    final java.lang.Object val = globalHandles.get(ohVal);
+    arr[index] = val;
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "set_rank_1_java_lang_String", include = CEntryPoint.AlwaysIncluded.class)
+  public static void set_rank_1_java_lang_String(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_String") final ObjectHandle ohArr, final int index, @CTypedef(name = "OBJECT_HANDLE_java_lang_String") final ObjectHandle ohVal) {
+    final ObjectHandles globalHandles = ObjectHandles.getGlobal();
+    final java.lang.String[] arr = globalHandles.get(ohArr);
+    final java.lang.String val = globalHandles.get(ohVal);
+    arr[index] = val;
   }
 
   @CHeader(org_graalvm_nativeimage_UnmanagedMemory.class)
