@@ -41,11 +41,11 @@ void test_getDevice(const std::string &dev) noexcept {
 void test_readCheckpoint(const std::string& dcp, const std::string& edf) noexcept {
   auto design{ Design::readCheckpoint(utf8ToJavaString(dcp), utf8ToJavaString(edf)) };
 
-  JAVA_ARRAY<Cell> cells{ design.getCells()._objectHandle };
-  JAVA_ARRAY<Net> nets{ design.getNets()._objectHandle };
+  JAVA_ARRAY<Cell> cells{ design.getCells() };
+  JAVA_ARRAY<Net> nets{ design.getNets() };
 
-  std::println("cellsLength: {}", cells.length);
-  std::println("netsLength: {}", nets.length);
+  std::println("cellsLength: {}", cells.size());
+  std::println("netsLength: {}", nets.size());
 
   std::println("cell[0]: {}", cells[0].toString());
 
@@ -53,8 +53,8 @@ void test_readCheckpoint(const std::string& dcp, const std::string& edf) noexcep
     std::println("cell: {}", cell.toString());
   }
 
-  for (auto p : cells | std::views::enumerate) {
-    std::println("cell[{}]: {}", std::get<0>(p), std::get<1>(p).toString());
+  for (auto [index, cell] : cells | std::views::enumerate) {
+    std::println("cell[{}]: {}", index, cell.toString());
   }
 
   for (auto &&net: nets) {

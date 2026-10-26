@@ -5,15 +5,18 @@ import com.xilinx.rapidwright.device.Device;
 import com.xilinx.rapidwright.util.FileTools;
 import org.graalvm.nativeimage.c.CHeader;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
+import org.graalvm.nativeimage.c.struct.SizeOf;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CConst;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.nativeimage.c.type.CTypedef;
+import org.graalvm.nativeimage.c.type.WordPointer;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.ObjectHandle;
 import org.graalvm.nativeimage.ObjectHandles;
 import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.word.PointerBase;
+import org.graalvm.word.SignedWord;
 import org.graalvm.word.UnsignedWord;
 import org.graalvm.word.WordFactory;
 
@@ -116,12 +119,50 @@ public class FileToolsUpdateAllDataFiles {
   }
 
   @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
-  @CEntryPoint(name = "java_util_Collection_toArray", include = CEntryPoint.AlwaysIncluded.class)
-  @CTypedef(name = "OBJECT_HANDLE_RANK_1_java_lang_Object")
-  public static ObjectHandle get_rank_1_java_lang_Object(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_java_util_Collection") final ObjectHandle ohCollection) {
+  @CEntryPoint(name = "java_util_Collection_JAVA_ARRAY", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_java_lang_Object *")
+  public static WordPointer java_util_Collection_JAVA_ARRAY(
+    final IsolateThread thread,
+    @CTypedef(name = "OBJECT_HANDLE_java_util_Collection") final ObjectHandle ohCollection,
+    @CTypedef(name = "size_t *") final WordPointer sizePtr
+  ) {
+
     final ObjectHandles globalHandles = ObjectHandles.getGlobal();
     final java.util.Collection col = globalHandles.get(ohCollection);
-    return globalHandles.create(col.toArray());
+    final UnsignedWord elementCount = WordFactory.unsigned(col.size());
+    sizePtr.write(elementCount);
+
+    final UnsignedWord elementByteCount = SizeOf.unsigned(WordPointer.class); 
+    final UnsignedWord arrayByteCount = elementCount.multiply(elementByteCount);
+    System.out.println("elementByteCount: " + elementByteCount.rawValue() + ", elementCount: " + elementCount.rawValue() + ", arrayByteCount: " + arrayByteCount.rawValue());
+    final WordPointer buffer = UnmanagedMemory.malloc(arrayByteCount);
+
+    SignedWord index = WordFactory.signed(0);
+    for(final Object item: col) {
+      final SignedWord current_index = index; index = index.add(1);
+      final ObjectHandle itemObjectHandle = globalHandles.create(item);
+      buffer.write(current_index, itemObjectHandle);
+    }
+
+    return buffer;
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "free_JAVA_ARRAY", include = CEntryPoint.AlwaysIncluded.class)
+  public static void free_JAVA_ARRAY(
+    final IsolateThread thread,
+    @CTypedef(name = "OBJECT_HANDLE_java_lang_Object *") final WordPointer javaArray,
+    final UnsignedWord elementCount
+  ) {
+
+    final ObjectHandles globalHandles = ObjectHandles.getGlobal();
+    final long elementCountLong = elementCount.rawValue();
+    for(long index = 0; index < elementCountLong; index++) {
+      final ObjectHandle itemObjectHandle = javaArray.read(WordFactory.signed(index));
+      globalHandles.destroy(itemObjectHandle);
+    }
+
+    UnmanagedMemory.free(javaArray);
   }
 
   @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
