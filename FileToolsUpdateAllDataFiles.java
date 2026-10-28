@@ -70,6 +70,24 @@ public class FileToolsUpdateAllDataFiles {
   }
 
   @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "java_lang_Object_toString", include = CEntryPoint.AlwaysIncluded.class)
+  @CTypedef(name = "OBJECT_HANDLE_java_lang_String")
+  public static ObjectHandle java_lang_Object_toString(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_java_lang_Object") final ObjectHandle ohThis) {
+    final ObjectHandles globalHandles = ObjectHandles.getGlobal();
+    final Object oThis = globalHandles.get(ohThis);
+    return globalHandles.create(oThis.toString());
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
+  @CEntryPoint(name = "java_lang_Object_equals", include = CEntryPoint.AlwaysIncluded.class)
+  public static boolean java_lang_Object_equals(final IsolateThread thread, @CTypedef(name = "OBJECT_HANDLE_java_lang_Object") final ObjectHandle ohThis, @CTypedef(name = "OBJECT_HANDLE_java_lang_Object") final ObjectHandle ohObj) {
+    final ObjectHandles globalHandles = ObjectHandles.getGlobal();
+    final Object oThis = globalHandles.get(ohThis);
+    final Object oObj = globalHandles.get(ohObj);
+    return oThis.equals(oObj);
+  }
+
+  @CHeader(org_graalvm_nativeimage_c_type_CTypeConversion.class)
   @CEntryPoint(name = "org_graalvm_nativeimage_c_type_CTypeConversion_utf8ToJavaString", include = CEntryPoint.AlwaysIncluded.class)
   @CTypedef(name = "OBJECT_HANDLE_java_lang_String")
   public static ObjectHandle org_graalvm_nativeimage_c_type_CTypeConversion_utf8ToJavaString(final IsolateThread thread, @CConst final CCharPointer utf8String) {
@@ -134,7 +152,6 @@ public class FileToolsUpdateAllDataFiles {
 
     final UnsignedWord elementByteCount = SizeOf.unsigned(WordPointer.class); 
     final UnsignedWord arrayByteCount = elementCount.multiply(elementByteCount);
-    System.out.println("elementByteCount: " + elementByteCount.rawValue() + ", elementCount: " + elementCount.rawValue() + ", arrayByteCount: " + arrayByteCount.rawValue());
     final WordPointer buffer = UnmanagedMemory.malloc(arrayByteCount);
 
     SignedWord index = WordFactory.signed(0);
